@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../services/anime_service.dart';
+import '../models/episode_model.dart';
+import '../screen/protected/watch_anime_screen.dart';
 
 class WatchEpisodeList extends StatefulWidget {
-  final List<String> episodes;
-  final int currentEpisodeIndex;
+  final int animeId;
+  final int currentEpisodeId;
 
   const WatchEpisodeList({
     super.key,
-    required this.episodes,
-    this.currentEpisodeIndex = 7,
+    required this.animeId,
+    required this.currentEpisodeId,
   });
 
   @override
@@ -18,10 +21,62 @@ class WatchEpisodeList extends StatefulWidget {
 
 class _WatchEpisodeListState extends State<WatchEpisodeList> {
   bool _isAscending = true;
+  List<EpisodeModel> episodes = [];
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEpisodes();
+  }
+
+  Future<void> _loadEpisodes() async {
+    try {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+
+      final episodeList = await AnimeService.getEpisodesByAnimeId(
+        widget.animeId,
+      );
+      setState(() {
+        episodes = episodeList;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = e.toString();
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    List<String> displayedEpisodes = [...widget.episodes];
+    if (isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16),
+        child: Center(
+          child: CircularProgressIndicator(color: Colors.pinkAccent),
+        ),
+      );
+    }
+
+    if (errorMessage != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Center(
+          child: Text(
+            'Gagal memuat episode: $errorMessage',
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      );
+    }
+
+    List<EpisodeModel> displayedEpisodes = [...episodes];
     if (!_isAscending) {
       displayedEpisodes = displayedEpisodes.reversed.toList();
     }
@@ -38,33 +93,42 @@ class _WatchEpisodeListState extends State<WatchEpisodeList> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: displayedEpisodes.length,
             itemBuilder: (context, index) {
-              // Karena urutan bisa terbalik, kita sesuaikan indeks aktif
-              final actualIndex = _isAscending
-                  ? index
-                  : displayedEpisodes.length - 1 - index;
-              final isActive = actualIndex == widget.currentEpisodeIndex;
+              final episode = displayedEpisodes[index];
+              final isActive = episode.id == widget.currentEpisodeId;
 
-              return Container(
-                margin: const EdgeInsets.only(right: 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: isActive ? Colors.pinkAccent : Colors.white10,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isActive
-                        ? Colors.pinkAccent
-                        : Colors.pinkAccent.withOpacity(0.3),
+              return GestureDetector(
+                onTap: () {
+                  // Navigate to watch screen with this episode
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          WatchAnimeScreen(episodeId: episode.id),
+                    ),
+                  );
+                },
+                child: Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
                   ),
-                ),
-                child: Center(
-                  child: Text(
-                    displayedEpisodes[index],
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 12,
+                  decoration: BoxDecoration(
+                    color: isActive ? Colors.pinkAccent : Colors.white10,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isActive
+                          ? Colors.pinkAccent
+                          : Colors.pinkAccent.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Episode ${episode.nomorEpisode}',
+                      style: GoogleFonts.poppins(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ),

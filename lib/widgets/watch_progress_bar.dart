@@ -1,16 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../models/episode_detail_model.dart';
 
 class WatchProgressBar extends StatelessWidget {
-  final int currentEpisode;
-  final int totalEpisodes;
+  final EpisodeDetailModel? episodeDetail;
 
-  const WatchProgressBar({
-    super.key,
-    this.currentEpisode = 8,
-    this.totalEpisodes = 12,
-  });
+  const WatchProgressBar({super.key, this.episodeDetail});
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +39,9 @@ class WatchProgressBar extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  '$currentEpisode / $totalEpisodes Episode',
+                  episodeDetail != null
+                      ? 'Episode ${episodeDetail!.nomorEpisode}'
+                      : '8 / 12 Episode',
                   style: GoogleFonts.poppins(
                     color: Colors.white70,
                     fontSize: 12,
@@ -55,7 +53,9 @@ class WatchProgressBar extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: LinearProgressIndicator(
-                value: currentEpisode / totalEpisodes,
+                value: episodeDetail != null
+                    ? 1.0
+                    : 0.67, // Show as completed for current episode
                 minHeight: 10,
                 backgroundColor: Colors.white24,
                 valueColor: const AlwaysStoppedAnimation(Colors.pinkAccent),

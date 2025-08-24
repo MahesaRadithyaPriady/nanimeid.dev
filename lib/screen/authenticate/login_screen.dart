@@ -4,6 +4,9 @@ import 'package:wave/wave.dart';
 import 'package:wave/config.dart';
 import 'register_screen.dart';
 import '../protected/navigation/main_navigation.dart';
+import '../../services/auth_service.dart';
+import '../../utils/secure_storage.dart';
+import '../../config/settings.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,7 +20,7 @@ Route _createRegisterRoute() {
     pageBuilder: (context, animation, secondaryAnimation) =>
         const RegisterScreen(),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      const begin = Offset(-1.0, 0.0); // Dari kiri
+      const begin = Offset(-1.0, 0.0);
       const end = Offset.zero;
       const curve = Curves.easeInOut;
 
@@ -32,10 +35,37 @@ Route _createRegisterRoute() {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController emailController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool agreeToPolicy = false;
-  bool isLoading = false; // ✅ Tambahkan ini
+  bool isLoading = false;
+  bool get isFormValid =>
+      usernameController.text.isNotEmpty &&
+      passwordController.text.isNotEmpty &&
+      agreeToPolicy;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Listener supaya tombol login realtime update
+    usernameController.addListener(_updateState);
+    passwordController.addListener(_updateState);
+  }
+
+  void _updateState() {
+    // Memanggil setState agar build dijalankan ulang
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    usernameController.removeListener(_updateState);
+    passwordController.removeListener(_updateState);
+    usernameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,168 +74,247 @@ class _LoginScreenState extends State<LoginScreen> {
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Form & content
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight:
-                      MediaQuery.of(context).size.height -
-                      MediaQuery.of(context).padding.top -
-                      MediaQuery.of(context).padding.bottom,
+            child: Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 24,
                 ),
-                child: IntrinsicHeight(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 24),
-                      Center(
-                        child: Text(
-                          'NanimeID',
-                          style: GoogleFonts.poppins(
-                            textStyle: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      AppSettings.appName,
+                      style: GoogleFonts.inter(
+                        textStyle: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 40),
+                    ),
 
-                      Text(
-                        'Email / Username',
-                        style: GoogleFonts.poppins(color: Colors.white70),
-                      ),
+                    if (AppSettings.isDebug) ...[
                       const SizedBox(height: 8),
-                      TextField(
-                        controller: emailController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration(
-                          'Masukkan email / username',
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
                       Text(
-                        'Password',
-                        style: GoogleFonts.poppins(color: Colors.white70),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: passwordController,
-                        obscureText: true,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: _inputDecoration('Masukkan password'),
-                      ),
-                      const SizedBox(height: 20),
-
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: agreeToPolicy,
-                            activeColor: Colors.pinkAccent,
-                            onChanged: (value) {
-                              setState(() {
-                                agreeToPolicy = value ?? false;
-                              });
-                            },
-                          ),
-                          Expanded(
-                            child: Text(
-                              'Saya menyetujui kebijakan privasi dan ketentuan penggunaan.',
-                              style: GoogleFonts.poppins(
-                                color: Colors.white54,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: (agreeToPolicy && !isLoading)
-                              ? () async {
-                                  setState(() {
-                                    isLoading = true;
-                                  });
-
-                                  await Future.delayed(
-                                    const Duration(seconds: 2),
-                                  ); // ⏳ Simulasi loading
-
-                                  if (!mounted) return;
-                                  Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          const MainNavigation(),
-                                    ),
-                                  );
-
-                                  setState(() {
-                                    isLoading = false;
-                                  });
-                                }
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.pinkAccent,
-                            disabledBackgroundColor: Colors.pinkAccent
-                                .withOpacity(0.3),
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                          ),
-                          child: isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(
-                                  'Masuk',
-                                  style: GoogleFonts.poppins(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 40),
-
-                      Center(
-                        child: GestureDetector(
-                          onTap: () {
-                            Navigator.of(context).push(_createRegisterRoute());
-                          },
-                          child: Text(
-                            'Belum punya akun? Daftar sekarang',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white38,
-                              fontSize: 14,
-                              decoration: TextDecoration.underline,
-                            ),
+                        'Aplikasi Dalam Debug Mode',
+                        style: GoogleFonts.inter(
+                          textStyle: const TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
                     ],
-                  ),
+
+                    const SizedBox(height: 40),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Username',
+                        style: GoogleFonts.inter(color: Colors.white70),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: usernameController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _inputDecoration('Masukkan username'),
+                    ),
+                    const SizedBox(height: 20),
+
+                    /// Password
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Password',
+                        style: GoogleFonts.inter(color: Colors.white70),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: true,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: _inputDecoration('Masukkan password'),
+                    ),
+                    const SizedBox(height: 20),
+
+                    /// Checkbox
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: agreeToPolicy,
+                          activeColor: Colors.pinkAccent,
+                          onChanged: (value) {
+                            setState(() {
+                              agreeToPolicy = value ?? false;
+                            });
+                          },
+                        ),
+                        Expanded(
+                          child: Text(
+                            'Saya menyetujui kebijakan privasi dan ketentuan penggunaan.',
+                            style: GoogleFonts.inter(
+                              color: Colors.white54,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    /// Tombol Login
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: (isFormValid && !isLoading)
+                            ? () async {
+                                // ⌨️ Tutup keyboard
+                                FocusScope.of(context).unfocus();
+
+                                setState(() {
+                                  isLoading = true;
+                                });
+
+                                final result = await AuthService.login(
+                                  usernameController.text.trim(),
+                                  passwordController.text.trim(),
+                                );
+
+                                if (!mounted) return;
+
+                                if (result['success'] == true) {
+                                  final token =
+                                      await SecureStorage.getToken() ?? "";
+
+                                  if (AppSettings.isDebug) {
+                                    // 🎯 Kalau debug mode -> tampilkan popup token
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        return AlertDialog(
+                                          backgroundColor: Colors.black87,
+                                          title: const Text(
+                                            "Login Berhasil 🎉",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          content: SingleChildScrollView(
+                                            child: Text(
+                                              "Pesan: ${result['message']}\n\nToken:\n$token",
+                                              style: const TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                                Navigator.pushReplacement(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        const MainNavigation(),
+                                                  ),
+                                                );
+                                              },
+                                              child: const Text(
+                                                "Lanjutkan",
+                                                style: TextStyle(
+                                                  color: Colors.pinkAccent,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                  } else {
+                                    // 🚀 Kalau bukan debug mode -> langsung masuk
+                                    Navigator.pushReplacement(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const MainNavigation(),
+                                      ),
+                                    );
+                                  }
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        result['message'] ?? "Login gagal",
+                                      ),
+                                      backgroundColor: Colors.redAccent,
+                                    ),
+                                  );
+                                }
+
+                                setState(() {
+                                  isLoading = false;
+                                });
+                              }
+                            : null,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.pinkAccent,
+                          disabledBackgroundColor: Colors.pinkAccent
+                              .withOpacity(0.3),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'Masuk',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    /// Link Register
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(_createRegisterRoute());
+                      },
+                      child: Text(
+                        'Belum punya akun? Daftar sekarang',
+                        style: GoogleFonts.inter(
+                          color: Colors.white38,
+                          fontSize: 14,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
 
-          // Wave animasi di bawah
+          /// Wave bawah
           Positioned(
             bottom: 0,
             left: 0,
@@ -243,7 +352,7 @@ class _LoginScreenState extends State<LoginScreen> {
   InputDecoration _inputDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.white30),
+      hintStyle: GoogleFonts.inter(color: Colors.white30),
       filled: true,
       fillColor: Colors.white10,
       border: OutlineInputBorder(

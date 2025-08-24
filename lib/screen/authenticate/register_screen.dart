@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:nanimeid/screen/authenticate/login_screen.dart';
 import 'package:wave/config.dart';
 import 'package:wave/wave.dart';
+
+// import service dan config
+import '../../services/auth_service.dart';
+import '../../config/settings.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -20,11 +25,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool agreeToPolicy = false;
   bool agreeToRecommendation = false;
+  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    userIdController.text = ''; // biar bisa input angka saja
+    userIdController.text = '';
   }
 
   bool get isFormValid =>
@@ -36,22 +42,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
       passwordController.text.length >= 6 &&
       userIdController.text.isNotEmpty;
 
+  Future<void> _handleRegister() async {
+    setState(() => isLoading = true);
+
+    final result = await AuthService.register(
+      username: usernameController.text.trim(),
+      email: emailController.text.trim(),
+      password: passwordController.text.trim(),
+      userid: int.tryParse(userIdController.text) ?? 0,
+    );
+
+    if (mounted) {
+      setState(() => isLoading = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message']),
+          backgroundColor: result['success'] ? Colors.green : Colors.redAccent,
+        ),
+      );
+    }
+
+    if (result['success']) {
+      // ✅ Register sukses, langsung ke LoginScreen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    }
+
+    if (AppSettings.isDebug) {
+      debugPrint("📌 Register result: $result");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      resizeToAvoidBottomInset: false, // ⛔ Wave tidak akan ikut naik
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // Wave tetap di bawah
-          const Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
+          /// Wave fixed di bawah
+          const Align(
+            alignment: Alignment.bottomCenter,
             child: _WaveBackground(),
           ),
 
-          // Form scrollable
+          /// Form scrollable
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
@@ -72,6 +110,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
                   ),
+
+                  if (AppSettings.isDebug) ...[
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Text(
+                        "Aplikasi Dalam Mode Debug",
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 32),
 
                   _label('Email'),
@@ -187,10 +238,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: isFormValid
-                          ? () {
-                              // TODO: proses register
-                            }
+                      onPressed: isFormValid && !isLoading
+                          ? _handleRegister
                           : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.pinkAccent,
@@ -199,19 +248,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
-                      child: Text(
-                        'Daftar',
-                        style: GoogleFonts.poppins(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      child: isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                              'Daftar',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                     ),
                   ),
-                  const SizedBox(
-                    height: 100,
-                  ), // ruang kosong agar tidak ketutup wave
+
+                  const SizedBox(height: 120),
                 ],
               ),
             ),
@@ -252,7 +302,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-/// Wave dipisah biar tidak terpengaruh layout form
 class _WaveBackground extends StatelessWidget {
   const _WaveBackground();
 
@@ -260,6 +309,7 @@ class _WaveBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 100,
+      width: double.infinity,
       child: WaveWidget(
         config: CustomConfig(
           gradients: [

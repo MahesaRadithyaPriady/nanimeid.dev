@@ -14,7 +14,6 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller = PageController();
-  double verticalDrag = 0.0;
   int currentPage = 0;
 
   final List<Map<String, dynamic>> pages = [
@@ -37,23 +36,24 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   ];
 
   Route _createLoginRoute() {
-  return PageRouteBuilder(
-    pageBuilder: (context, animation, secondaryAnimation) => const LoginScreen(),
-    transitionDuration: const Duration(milliseconds: 600),
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      const begin = Offset(0.0, 1.0); // dari bawah ke atas
-      const end = Offset.zero;
-      final curve = Curves.easeOutCubic;
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          const LoginScreen(),
+      transitionDuration: const Duration(milliseconds: 600),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(0.0, 1.0); // dari bawah ke atas
+        const end = Offset.zero;
+        final curve = Curves.easeOutCubic;
 
-      final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-      return SlideTransition(
-        position: animation.drive(tween),
-        child: child,
-      );
-    },
-  );
-}
-
+        final tween =
+            Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        return SlideTransition(
+          position: animation.drive(tween),
+          child: child,
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,33 +61,36 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
+          /// PageView Vertical
           PageView.builder(
             controller: _controller,
+            scrollDirection: Axis.vertical, // swipe ke atas/bawah
             itemCount: pages.length,
             onPageChanged: (index) => setState(() => currentPage = index),
             physics: const BouncingScrollPhysics(),
             itemBuilder: (context, index) {
-  final page = pages[index];
-  final isLast = page['swipeUp'] == true;
+              final page = pages[index];
+              final isLast = page['swipeUp'] == true;
 
-  return _buildPage(
-    title: page['title'],
-    description: page['description'],
-    image: page['icon'],
-    showStartButton: isLast,
-  );
-},
+              return _buildPage(
+                title: page['title'],
+                description: page['description'],
+                image: page['icon'],
+                showStartButton: isLast,
+              );
+            },
           ),
 
-          // Slide indicator
+          /// Indicator vertikal di kanan
           Positioned(
-            bottom: 120,
-            left: 0,
-            right: 0,
+            right: 20,
+            top: 0,
+            bottom: 0,
             child: Center(
               child: SmoothPageIndicator(
                 controller: _controller,
                 count: pages.length,
+                axisDirection: Axis.vertical, // indikator juga vertikal
                 effect: WormEffect(
                   activeDotColor: Colors.pinkAccent,
                   dotColor: Colors.white30,
@@ -98,7 +101,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
 
-          // Moving wave decoration at bottom
+          /// Wave di bawah
           Positioned(
             bottom: 0,
             left: 0,
@@ -108,7 +111,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: WaveWidget(
                 config: CustomConfig(
                   gradients: [
-                    [Colors.pinkAccent.withOpacity(0.3), Colors.pinkAccent.withOpacity(0.2)],
+                    [
+                      Colors.pinkAccent.withOpacity(0.3),
+                      Colors.pinkAccent.withOpacity(0.2)
+                    ],
                     [Colors.pink.withOpacity(0.2), Colors.purple.withOpacity(0.1)],
                   ],
                   durations: [35000, 19440],
@@ -131,68 +137,67 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     required String title,
     required String description,
     required IconData image,
-   bool showStartButton = false,
-
+    bool showStartButton = false,
   }) {
     return Container(
-  padding: const EdgeInsets.all(32),
-  child: Column(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      Icon(
-        image,
-        size: 100,
-        color: Colors.pinkAccent,
-      ),
-      const SizedBox(height: 40),
-      Text(
-        title,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.poppins(
-          textStyle: const TextStyle(
-            color: Colors.white,
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            image,
+            size: 100,
+            color: Colors.pinkAccent,
           ),
-        ),
-      ),
-      const SizedBox(height: 20),
-      Text(
-        description,
-        textAlign: TextAlign.center,
-        style: GoogleFonts.poppins(
-          textStyle: const TextStyle(
-            color: Colors.white70,
-            fontSize: 16,
-          ),
-        ),
-      ),
-      if (showStartButton) ...[
-        const SizedBox(height: 40),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).pushReplacement(_createLoginRoute());
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.pinkAccent,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          child: Text(
-            'Mulai',
+          const SizedBox(height: 40),
+          Text(
+            title,
+            textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+              textStyle: const TextStyle(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-        ),
-      ],
-    ],
-  ),
-);
-
-}
+          const SizedBox(height: 20),
+          Text(
+            description,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.poppins(
+              textStyle: const TextStyle(
+                color: Colors.white70,
+                fontSize: 16,
+              ),
+            ),
+          ),
+          if (showStartButton) ...[
+            const SizedBox(height: 40),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pushReplacement(_createLoginRoute());
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.pinkAccent,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                'Mulai',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }

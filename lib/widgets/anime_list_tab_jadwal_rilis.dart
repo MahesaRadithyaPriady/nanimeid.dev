@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../widgets/home_section_anime.dart';
+import '../models/anime_model.dart';
 
 class JadwalRilisTab extends StatelessWidget {
   const JadwalRilisTab({super.key});
@@ -71,7 +72,7 @@ class JadwalRilisTab extends StatelessWidget {
     };
 
     return Container(
-      color: const Color(0xFF101014),
+      color: Colors.black,
       child: ListView(
         children: jadwalRilis.entries.map((entry) {
           final day = entry.key;
@@ -84,7 +85,7 @@ class JadwalRilisTab extends StatelessWidget {
                 SnackBar(content: Text('Lihat semua anime hari $day')),
               );
             },
-            animeList: animes,
+            animeList: animes.map((anime) => AnimeModel.fromJson(anime)).toList(),
           );
         }).toList(),
       ),

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
 import 'watch_fullscreen.dart'; // Import halaman fullscreen
+import '../models/episode_detail_model.dart';
 
 class WatchVideoPlayer extends StatefulWidget {
-  const WatchVideoPlayer({super.key});
+  final EpisodeDetailModel? episodeDetail;
+
+  const WatchVideoPlayer({super.key, this.episodeDetail});
 
   @override
   State<WatchVideoPlayer> createState() => _WatchVideoPlayerState();
@@ -22,8 +24,14 @@ class _WatchVideoPlayerState extends State<WatchVideoPlayer> {
   Duration _totalDuration = Duration.zero;
   String _selectedQuality = 'Auto';
 
-  final List<String> _qualityOptions = ['Auto', '720p', '480p', '360p'];
-
+  final List<String> _qualityOptions = [
+    'Auto',
+    '720p',
+    '480p',
+    '360p',
+    '1080p',
+    '2K',
+  ];
   @override
   void initState() {
     super.initState();
@@ -32,9 +40,14 @@ class _WatchVideoPlayerState extends State<WatchVideoPlayer> {
 
   void _initializeVideoPlayer() async {
     try {
-      _controller = VideoPlayerController.networkUrl(
-        Uri.parse('https://pixeldrain.com/api/file/icN64hL2'),
-      );
+      // Use episode video source if available, otherwise use default
+      String videoUrl = 'https://pixeldrain.com/api/file/icN64hL2';
+
+      if (widget.episodeDetail?.bestQuality?.sourceQuality != null) {
+        videoUrl = widget.episodeDetail!.bestQuality!.sourceQuality;
+      }
+
+      _controller = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
 
       await _controller.initialize();
 
@@ -141,28 +154,49 @@ class _WatchVideoPlayerState extends State<WatchVideoPlayer> {
               ),
             ),
             const SizedBox(height: 16),
-            ..._qualityOptions.map(
-              (quality) => ListTile(
+            ..._qualityOptions.map((quality) {
+              bool isLocked = (quality == '1080p' || quality == '2K');
+
+              return ListTile(
                 leading: Icon(
-                  _selectedQuality == quality
+                  _selectedQuality == quality && !isLocked
                       ? Icons.check_circle
+                      : isLocked
+                      ? Icons.lock
                       : Icons.radio_button_unchecked,
-                  color: _selectedQuality == quality
+                  color: isLocked
+                      ? Colors.grey
+                      : _selectedQuality == quality
                       ? Colors.pinkAccent
                       : Colors.white70,
                 ),
                 title: Text(
                   quality,
-                  style: GoogleFonts.poppins(color: Colors.white),
+                  style: GoogleFonts.poppins(
+                    color: isLocked ? Colors.grey : Colors.white,
+                  ),
                 ),
-                onTap: () {
-                  setState(() {
-                    _selectedQuality = quality;
-                  });
-                  Navigator.pop(context);
-                },
-              ),
-            ),
+                onTap: isLocked
+                    ? () {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Upgrade ke VIP untuk menonton dalam $quality',
+                              style: GoogleFonts.poppins(),
+                            ),
+                            backgroundColor: Colors.pinkAccent,
+                          ),
+                        );
+                      }
+                    : () {
+                        setState(() {
+                          _selectedQuality = quality;
+                        });
+                        Navigator.pop(context);
+                      },
+              );
+            }),
           ],
         ),
       ),

@@ -60,8 +60,9 @@ class _WatchCommentSectionState extends State<WatchCommentSection> {
 
   Future<void> _loadMoreComments() async {
     if (_isLoadingComments ||
-        _displayedComments.length >= widget.allComments.length)
+        _displayedComments.length >= widget.allComments.length) {
       return;
+    }
 
     setState(() => _isLoadingComments = true);
     await Future.delayed(const Duration(milliseconds: 300));

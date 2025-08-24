@@ -11,27 +11,53 @@ class HomeHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.black, // Warna background hitam
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      decoration: BoxDecoration(
+        color: Colors.black, // Hitam elegan
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          )
+        ],
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Koin
-          Row(
-            children: [
-              Icon(LucideIcons.coins, color: Colors.yellow[700]),
-              const SizedBox(width: 6),
-              Text(
-                '$coinBalance',
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
+          // Coin balance
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.amber.shade600, Colors.orange.shade600],
               ),
-            ],
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.orange.withOpacity(0.4),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                )
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(LucideIcons.coins, color: Colors.white, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  '$coinBalance',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
           ),
-          // Judul Tengah
+
+          // Title
           Text(
             'NanimeID',
             style: GoogleFonts.poppins(
@@ -41,8 +67,48 @@ class HomeHeader extends StatelessWidget {
               letterSpacing: 1.2,
             ),
           ),
-          // Status VIP
-          Icon(Icons.diamond, color: isVip ? Colors.pinkAccent : Colors.grey),
+
+          // VIP Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              gradient: isVip
+                  ? const LinearGradient(
+                      colors: [Colors.pinkAccent, Colors.deepPurpleAccent],
+                    )
+                  : LinearGradient(
+                      colors: [Colors.grey, Colors.black54],
+                    ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: isVip
+                  ? [
+                      BoxShadow(
+                        color: Colors.pinkAccent.withOpacity(0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      )
+                    ]
+                  : [],
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.diamond,
+                  color: Colors.white,
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  isVip ? "VIP" : "FREE",
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

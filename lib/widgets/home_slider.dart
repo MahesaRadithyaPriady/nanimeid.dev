@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import '../models/anime_model.dart';
 
 class HomeSlider extends StatelessWidget {
-  final List<Map<String, dynamic>> animeList;
+  final List<AnimeModel> animeList;
 
   const HomeSlider({super.key, required this.animeList});
 
@@ -24,16 +25,23 @@ class HomeSlider extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(
-                  anime['image'],
+                  anime.gambarAnime,
                   fit: BoxFit.cover,
                   width: double.infinity,
                   height: 240,
                   errorBuilder: (context, error, stackTrace) {
-                    return Image.network(
-                      'https://upload.wikimedia.org/wikipedia/commons/7/75/No_image_available.png',
-                      fit: BoxFit.cover,
+                    return Container(
                       width: double.infinity,
                       height: 240,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.image_not_supported,
+                        color: Colors.white54,
+                        size: 48,
+                      ),
                     );
                   },
                 ),
@@ -66,7 +74,7 @@ class HomeSlider extends StatelessWidget {
                     border: Border.all(color: Colors.white.withOpacity(0.4)),
                   ),
                   child: Text(
-                    anime['status'],
+                    anime.statusAnime,
                     style: GoogleFonts.poppins(
                       color: Colors.white,
                       fontSize: 11,
@@ -83,7 +91,7 @@ class HomeSlider extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      anime['title'],
+                      anime.namaAnime,
                       style: GoogleFonts.poppins(
                         color: Colors.white,
                         fontSize: 16,
@@ -92,57 +100,164 @@ class HomeSlider extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      anime['synopsis'],
+                      anime.sinopsisAnime,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.poppins(
                         color: Colors.white70,
                         fontSize: 12,
+                        height: 1.3,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(Icons.star, size: 14, color: Colors.amber),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${anime['rating']}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade600,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                color: Colors.white,
+                                size: 12,
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                anime.ratingAnime,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        const Icon(
-                          Icons.category,
-                          size: 14,
-                          color: Colors.white54,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          anime['genre'],
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.black54,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.remove_red_eye,
+                                size: 12,
+                                color: Colors.white,
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                anime.formattedViews,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        const Icon(
-                          Icons.remove_red_eye,
-                          size: 14,
-                          color: Colors.white54,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          anime['views'],
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                          ),
-                        ),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildGenreList(anime.genreAnime)),
                       ],
                     ),
                   ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildGenreList(List<String> genres) {
+    // Limit to maximum 4 genres
+    final displayGenres = genres.take(4).toList();
+
+    if (displayGenres.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade600,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.grey.shade400.withOpacity(0.5)),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.category, size: 12, color: Colors.white),
+            SizedBox(width: 2),
+            Text(
+              'Unknown',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      children: displayGenres.map((genre) {
+        final index = displayGenres.indexOf(genre);
+        final colors = [
+          Colors.blue.shade600,
+          Colors.purple.shade600,
+          Colors.green.shade600,
+          Colors.orange.shade600,
+        ];
+        final borderColors = [
+          Colors.blue.shade400,
+          Colors.purple.shade400,
+          Colors.green.shade400,
+          Colors.orange.shade400,
+        ];
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: colors[index % colors.length],
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(
+              color: borderColors[index % borderColors.length].withOpacity(0.5),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (index == 0) ...[
+                const Icon(Icons.category, size: 12, color: Colors.white),
+                const SizedBox(width: 2),
+              ],
+              Text(
+                genre,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],

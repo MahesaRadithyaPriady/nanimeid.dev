@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+ import '../models/episode_detail_model.dart';
 
 class WatchEpisodeInfo extends StatelessWidget {
-  const WatchEpisodeInfo({super.key});
+  final EpisodeDetailModel? episodeDetail;
+
+  const WatchEpisodeInfo({super.key, this.episodeDetail});
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +16,9 @@ class WatchEpisodeInfo extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Episode 8 - My Dress-Up Darling',
+            episodeDetail != null
+                ? 'Episode ${episodeDetail!.nomorEpisode} - ${episodeDetail!.judulEpisode}'
+                : 'Episode 8 - My Dress-Up Darling',
             style: GoogleFonts.poppins(
               color: Colors.white,
               fontSize: 16,
@@ -23,19 +28,31 @@ class WatchEpisodeInfo extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              _iconText(LucideIcons.calendar, 'April 2024'),
+              _iconText(
+                LucideIcons.calendar,
+                episodeDetail?.formattedReleaseDate ?? 'April 2024',
+              ),
               const SizedBox(width: 16),
-              _iconText(Icons.access_time, '24 Menit'),
+              _iconText(
+                Icons.access_time,
+                episodeDetail?.formattedDuration ?? '24 Menit',
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Row(
             children: [
-              _iconText(Icons.bookmark, 'Ongoing'),
+              _iconText(
+                Icons.bookmark,
+                episodeDetail?.anime.statusAnime ?? 'Ongoing',
+              ),
               const SizedBox(width: 16),
-              _iconText(Icons.star, '8.3'),
+              _iconText(Icons.star, episodeDetail?.anime.ratingAnime ?? '8.3'),
               const SizedBox(width: 16),
-              _iconText(Icons.remove_red_eye, '1.2M Views'),
+              _iconText(
+                Icons.remove_red_eye,
+                episodeDetail?.anime.viewAnime ?? '1.2M Views',
+              ),
             ],
           ),
           const SizedBox(height: 16),

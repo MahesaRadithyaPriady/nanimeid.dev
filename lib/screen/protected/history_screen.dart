@@ -35,10 +35,37 @@ class HistoryScreen extends StatelessWidget {
             'Hunter lemah Jin-Woo berubah menjadi hunter terkuat setelah menemukan sistem misterius.',
         'progress': 0.25,
       },
+       {
+        'title': 'Solo Leveling',
+        'image': 'https://picsum.photos/600/400',
+        'genre': 'Isekai',
+        'episode': 'Episode 4',
+        'sinopsis':
+            'Hunter lemah Jin-Woo berubah menjadi hunter terkuat setelah menemukan sistem misterius.',
+        'progress': 0.25,
+      },
+       {
+        'title': 'Solo Leveling',
+        'image': 'https://picsum.photos/600/400',
+        'genre': 'Isekai',
+        'episode': 'Episode 4',
+        'sinopsis':
+            'Hunter lemah Jin-Woo berubah menjadi hunter terkuat setelah menemukan sistem misterius.',
+        'progress': 0.25,
+      },
+       {
+        'title': 'Solo Leveling',
+        'image': 'https://picsum.photos/600/400',
+        'genre': 'Isekai',
+        'episode': 'Episode 4',
+        'sinopsis':
+            'Hunter lemah Jin-Woo berubah menjadi hunter terkuat setelah menemukan sistem misterius.',
+        'progress': 0.25,
+      },
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFF101014),
+      backgroundColor: Colors.black,
       body: SafeArea(
         child: Column(
           children: [
@@ -61,6 +88,7 @@ class HistoryScreen extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 12),
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -73,7 +101,7 @@ class HistoryScreen extends StatelessWidget {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1C1C1F),
+                      color: Colors.black,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(

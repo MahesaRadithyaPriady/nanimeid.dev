@@ -2,22 +2,323 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'watch_anime_screen.dart';
+import '../../models/anime_detail_model.dart';
+import '../../models/episode_model.dart';
+import '../../models/episode_progress_model.dart';
+import '../../services/anime_service.dart';
+import '../../services/auth_service.dart';
 
+class DetailAnimeScreen extends StatefulWidget {
+  final int animeId;
+  final Map<String, dynamic>? animeData; // For backward compatibility
 
-class DetailAnimeScreen extends StatelessWidget {
-  final Map<String, dynamic> anime;
+  const DetailAnimeScreen({super.key, required this.animeId, this.animeData});
 
-  const DetailAnimeScreen({super.key, required this.anime});
+  @override
+  State<DetailAnimeScreen> createState() => _DetailAnimeScreenState();
+}
+
+class _DetailAnimeScreenState extends State<DetailAnimeScreen> {
+  AnimeDetailModel? animeDetail;
+  List<EpisodeModel> episodes = [];
+  List<EpisodeProgressModel> episodeProgress = [];
+  int _progressPercentage = 0;
+  bool isLoadingDetail = true;
+  bool isLoadingEpisodes = true;
+  bool isLoadingProgress = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAnimeData();
+  }
+
+  Future<void> _loadAnimeData() async {
+    try {
+      setState(() {
+        isLoadingDetail = true;
+        isLoadingEpisodes = true;
+        isLoadingProgress = true;
+        errorMessage = null;
+      });
+
+      // Check if user is logged in before loading progress
+      final isLoggedIn = await AuthService.isLoggedIn();
+
+      if (isLoggedIn) {
+        // Load anime detail, episodes, and progress concurrently
+        await Future.wait([
+          _loadAnimeDetail(),
+          _loadEpisodes(),
+          _loadEpisodeProgress(),
+        ]);
+      } else {
+        // Load only anime detail and episodes if not logged in
+        await Future.wait([_loadAnimeDetail(), _loadEpisodes()]);
+        setState(() {
+          isLoadingProgress = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = e.toString();
+        isLoadingDetail = false;
+        isLoadingEpisodes = false;
+        isLoadingProgress = false;
+      });
+    }
+  }
+
+  Future<void> _loadAnimeDetail() async {
+    try {
+      final detail = await AnimeService.getAnimeDetail(widget.animeId);
+      setState(() {
+        animeDetail = detail;
+        isLoadingDetail = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Gagal memuat detail anime: $e';
+        isLoadingDetail = false;
+      });
+    }
+  }
+
+  Future<void> _loadEpisodes() async {
+    try {
+      final episodeList = await AnimeService.getEpisodesByAnimeId(
+        widget.animeId,
+      );
+      setState(() {
+        episodes = episodeList;
+        isLoadingEpisodes = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Gagal memuat episode: $e';
+        isLoadingEpisodes = false;
+      });
+    }
+  }
+
+  Future<void> _loadEpisodeProgress() async {
+    try {
+      final progressPercentage = await AnimeService.getTotalProgressPercentage(
+        widget.animeId,
+      );
+      setState(() {
+        // Store progress percentage for later use
+        _progressPercentage = progressPercentage;
+        isLoadingProgress = false;
+      });
+    } catch (e) {
+      setState(() {
+        // Don't show error for progress, just set to 0
+        // But log the error for debugging
+        print('Progress loading error: $e');
+        _progressPercentage = 0;
+        isLoadingProgress = false;
+      });
+    }
+  }
+
+  // Loading screen with skeleton
+  Widget _buildLoadingScreen() {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Cover image skeleton
+              Container(
+                width: double.infinity,
+                height: 200,
+                decoration: BoxDecoration(color: Colors.grey.shade800),
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.pinkAccent),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Title skeleton
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Container(
+                  height: 24,
+                  width: 200,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade800,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Info skeleton
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: List.generate(
+                    4,
+                    (index) => Container(
+                      margin: const EdgeInsets.only(right: 16),
+                      height: 16,
+                      width: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Progress skeleton
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 20,
+                      width: 150,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Synopsis skeleton
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 20,
+                      width: 100,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 16,
+                      width: 300,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Error screen
+  Widget _buildErrorScreen() {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  'Terjadi Kesalahan',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  errorMessage ?? 'Gagal memuat data anime',
+                  style: GoogleFonts.poppins(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _loadAnimeData,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.pinkAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Coba Lagi'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final double progress = 8 / 12;
-    final List<String> episodes = List.generate(12, (i) => 'Episode ${i + 1}');
-    final List<String> facts = [
-      'Adaptasi dari manga karya ABC',
-      'Studio: CloverWorks',
-      'Opening song trending di TikTok',
-    ];
+    // Show loading skeleton if still loading
+    if (isLoadingDetail) {
+      return _buildLoadingScreen();
+    }
+
+    // Show error screen if there's an error
+    if (errorMessage != null) {
+      return _buildErrorScreen();
+    }
+
+    // Use animeDetail if available, otherwise fallback to animeData
+    final anime = animeDetail?.toMap() ?? widget.animeData ?? {};
+    // Use progress percentage from API
+    double progress =
+        _progressPercentage / 100.0; // Convert percentage to decimal
+    final List<String> facts =
+        animeDetail?.faktaMenarik ??
+        [
+          'Adaptasi dari manga karya ABC',
+          'Studio: CloverWorks',
+          'Opening song trending di TikTok',
+        ];
     final List<Map<String, dynamic>> recommendations = [
       {
         'title': 'Kubo Won’t Let Me Be Invisible',
@@ -101,12 +402,15 @@ class DetailAnimeScreen extends StatelessWidget {
                   horizontal: 16,
                   vertical: 6,
                 ),
-                child: Row(
-                  children: [
-                    _buildBadge('🔥 Top 10'),
-                    const SizedBox(width: 8),
-                    _buildBadge('🆕 New Season'),
-                  ],
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children:
+                      animeDetail?.tagsAnime
+                          .take(3)
+                          .map((tag) => _buildBadge(tag))
+                          .toList() ??
+                      [_buildBadge('🔥 Top 10'), _buildBadge('🆕 New Season')],
                 ),
               ),
 
@@ -192,7 +496,10 @@ class DetailAnimeScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text('8 / 12 Episode', style: _smallTextStyle()),
+                    Text(
+                      '$_progressPercentage% Selesai',
+                      style: _smallTextStyle(),
+                    ),
                   ],
                 ),
               ),
@@ -224,12 +531,26 @@ class DetailAnimeScreen extends StatelessWidget {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => WatchAnimeScreen(),
-                            ),
-                          );
+                          // Get first episode ID if available
+                          if (episodes.isNotEmpty) {
+                            final firstEpisode = episodes.first;
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => WatchAnimeScreen(
+                                  episodeId: firstEpisode.id,
+                                ),
+                              ),
+                            );
+                          } else {
+                            // Show error if no episodes available
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Belum ada episode tersedia'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
                         },
                         icon: const Icon(Icons.play_arrow),
                         label: const Text('Tonton Sekarang'),
@@ -256,39 +577,86 @@ class DetailAnimeScreen extends StatelessWidget {
                 child: Text('Daftar Episode', style: _sectionTitleStyle()),
               ),
               const SizedBox(height: 8),
-              SizedBox(
-                height: 40,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: episodes.length,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white10,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.pinkAccent.withOpacity(0.4),
+              if (isLoadingEpisodes)
+                SizedBox(
+                  height: 40,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: 5,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
                         ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          episodes[index],
-                          style: GoogleFonts.poppins(
-                            color: Colors.white70,
-                            fontSize: 12,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade800,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const SizedBox(width: 60, height: 16),
+                      );
+                    },
+                  ),
+                )
+              else if (episodes.isNotEmpty)
+                SizedBox(
+                  height: 40,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: episodes.length,
+                    itemBuilder: (context, index) {
+                      final episode = episodes[index];
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  WatchAnimeScreen(episodeId: episode.id),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white10,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.pinkAccent.withOpacity(0.4),
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Episode ${episode.nomorEpisode}',
+                              style: GoogleFonts.poppins(
+                                color: Colors.white70,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Belum ada episode tersedia',
+                    style: GoogleFonts.poppins(
+                      color: Colors.white70,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
-              ),
 
               const SizedBox(height: 24),
 

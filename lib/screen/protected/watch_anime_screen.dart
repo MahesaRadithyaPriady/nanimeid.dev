@@ -5,16 +5,22 @@ import '../../widgets/watch_episode_list.dart';
 import '../../widgets/watch_progress_bar.dart';
 import '../../widgets/watch_comment_section.dart';
 import '../../widgets/watch_recommendation_section.dart';
+import '../../services/episode_service.dart';
+import '../../models/episode_detail_model.dart';
 
 class WatchAnimeScreen extends StatefulWidget {
-  WatchAnimeScreen({super.key});
+  final int episodeId;
+
+  const WatchAnimeScreen({super.key, required this.episodeId});
 
   @override
   State<WatchAnimeScreen> createState() => _WatchAnimeScreenState();
 }
 
 class _WatchAnimeScreenState extends State<WatchAnimeScreen> {
-  final List<String> episodes = List.generate(12, (i) => 'Ep ${i + 1}');
+  EpisodeDetailModel? episodeDetail;
+  bool isLoading = true;
+  String? errorMessage;
 
   // Simulasi data komentar yang banyak
   final List<Map<String, String>> _allComments = List.generate(
@@ -33,6 +39,32 @@ class _WatchAnimeScreenState extends State<WatchAnimeScreen> {
       'timestamp': '${(i ~/ 10) + 1} jam yang lalu',
     },
   );
+
+  @override
+  void initState() {
+    super.initState();
+    _loadEpisodeDetail();
+  }
+
+  Future<void> _loadEpisodeDetail() async {
+    try {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+
+      final detail = await EpisodeService.getEpisodeDetail(widget.episodeId);
+      setState(() {
+        episodeDetail = detail;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = e.toString();
+        isLoading = false;
+      });
+    }
+  }
 
   final List<Map<String, String>> recommendations = [
     {
@@ -74,6 +106,74 @@ class _WatchAnimeScreenState extends State<WatchAnimeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const CircularProgressIndicator(color: Colors.pinkAccent),
+                const SizedBox(height: 16),
+                Text(
+                  'Memuat episode...',
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (errorMessage != null) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red.shade400,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Terjadi Kesalahan',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    errorMessage!,
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton(
+                    onPressed: _loadEpisodeDetail,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.pinkAccent,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Coba Lagi'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -82,13 +182,16 @@ class _WatchAnimeScreenState extends State<WatchAnimeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const WatchVideoPlayer(),
+              WatchVideoPlayer(episodeDetail: episodeDetail),
               const SizedBox(height: 16),
-              const WatchEpisodeInfo(),
+              WatchEpisodeInfo(episodeDetail: episodeDetail),
               const SizedBox(height: 24),
-              WatchEpisodeList(episodes: episodes),
+              WatchEpisodeList(
+                animeId: episodeDetail?.animeId ?? 0,
+                currentEpisodeId: widget.episodeId,
+              ),
               const SizedBox(height: 24),
-              const WatchProgressBar(),
+              WatchProgressBar(episodeDetail: episodeDetail),
               const SizedBox(height: 32),
               WatchRecommendationSection(recommendations: recommendations),
               const SizedBox(height: 32),

@@ -128,7 +128,7 @@ class _AnimeListPageState extends State<AnimeListPage> {
       child: DefaultTabController(
         length: 2,
         child: Scaffold(
-          backgroundColor: const Color(0xFF101014),
+          backgroundColor: Colors.black,
           body: Column(
             children: [
               const HomeHeader(coinBalance: 1000, isVip: true),
