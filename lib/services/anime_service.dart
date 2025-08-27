@@ -4,17 +4,87 @@ import '../models/anime_model.dart';
 import '../models/anime_detail_model.dart';
 import '../models/episode_model.dart';
 import '../models/episode_progress_model.dart';
+import '../models/anime_schedule_model.dart';
+import '../models/live_search_model.dart';
 import '../utils/secure_storage.dart';
 
 class AnimeService extends ApiService {
+  // ==================== LIVE SEARCH ====================
+  static Future<LiveSearchResponseModel> getLiveSearch({
+    required String query,
+    int limit = 10,
+    bool includeScore = false,
+    bool fuzzy = true,
+    String sortBy = 'score',
+  }) async {
+    try {
+      final response = await ApiService.dio.get(
+        '/anime/live-search',
+        queryParameters: {
+          'q': query,
+          'limit': limit,
+          'includeScore': includeScore,
+          'fuzzy': fuzzy,
+          'sortBy': sortBy,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['status'] == 200 && data['data'] != null) {
+          return LiveSearchResponseModel.fromJson(data);
+        } else {
+          throw Exception(data['message'] ?? 'Gagal melakukan live search');
+        }
+      } else {
+        throw Exception('Gagal melakukan live search');
+      }
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data?['message'] ?? 'Gagal melakukan live search',
+      );
+    } catch (e) {
+      throw Exception('Error tidak terduga: $e');
+    }
+  }
+
+  // ==================== SCHEDULE METHODS ====================
+  static Future<AnimeScheduleResponseModel> getAnimeSchedule({
+    int limitPerDay = 10,
+  }) async {
+    try {
+      final response = await ApiService.dio.get(
+        '/anime/schedule',
+        queryParameters: {'limitPerDay': limitPerDay},
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        if (responseData['status'] == 200 && responseData['data'] != null) {
+          return AnimeScheduleResponseModel.fromJson(responseData);
+        } else {
+          throw Exception(
+            responseData['message'] ?? 'Gagal mengambil jadwal anime',
+          );
+        }
+      } else {
+        throw Exception('Gagal mengambil jadwal anime');
+      }
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data?['message'] ?? 'Gagal mengambil jadwal anime',
+      );
+    } catch (e) {
+      throw Exception('Error tidak terduga: $e');
+    }
+  }
+
   // Get all anime
   static Future<List<AnimeModel>> getAllAnime() async {
     try {
       final response = await ApiService.dio.get('/anime');
-
       if (response.statusCode == 200) {
         final responseData = response.data;
-
         // Check if response has the expected structure
         if (responseData['status'] == 200 && responseData['data'] != null) {
           final animeResponse = AnimeResponseModel.fromJson(responseData);
@@ -30,6 +100,79 @@ class AnimeService extends ApiService {
     } on DioException catch (e) {
       throw Exception(
         e.response?.data?['message'] ?? 'Failed to fetch anime data',
+      );
+    } catch (e) {
+      throw Exception('Unexpected error: $e');
+    }
+  }
+
+  // Get anime by genre using path segment e.g. /anime/genre/Action
+  static Future<List<AnimeModel>> getAnimeByGenrePath(String genre) async {
+    try {
+      final response = await ApiService.dio.get('/anime/genre/$genre');
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+
+        if (responseData['status'] == 200 && responseData['data'] != null) {
+          final animeResponse = AnimeResponseModel.fromJson(responseData);
+          return animeResponse.data;
+        } else {
+          throw Exception(
+            responseData['message'] ?? 'Failed to fetch anime by genre path',
+          );
+        }
+      } else {
+        throw Exception('Failed to fetch anime by genre path');
+      }
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data?['message'] ?? 'Failed to fetch anime by genre path',
+      );
+    } catch (e) {
+      throw Exception('Unexpected error: $e');
+    }
+  }
+
+  // Get anime A–Z with optional filters and pagination
+  static Future<AnimeAZResponseModel> getAnimeAZ({
+    String? letter,
+    String? genre,
+    String? studio,
+    int page = 1,
+    int limit = 24,
+    String order = 'asc',
+  }) async {
+    try {
+      final query = <String, dynamic>{
+        'page': page,
+        'limit': limit,
+        'order': order,
+      };
+      if (letter != null && letter.isNotEmpty) query['letter'] = letter;
+      if (genre != null && genre.isNotEmpty) query['genre'] = genre;
+      if (studio != null && studio.isNotEmpty) query['studio'] = studio;
+
+      final response = await ApiService.dio.get(
+        '/anime/a-z',
+        queryParameters: query,
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+        if (responseData['status'] == 200 && responseData['data'] != null) {
+          return AnimeAZResponseModel.fromJson(responseData);
+        } else {
+          throw Exception(
+            responseData['message'] ?? 'Gagal mengambil anime A–Z',
+          );
+        }
+      } else {
+        throw Exception('Gagal mengambil anime A–Z');
+      }
+    } on DioException catch (e) {
+      throw Exception(
+        e.response?.data?['message'] ?? 'Gagal mengambil anime A–Z',
       );
     } catch (e) {
       throw Exception('Unexpected error: $e');
@@ -437,6 +580,54 @@ class AnimeService extends ApiService {
   }
 
   // ==================== EPISODE PROGRESS METHODS ====================
+
+  // Get all episode progress for authenticated user
+  static Future<List<EpisodeProgressModel>> getUserEpisodeProgress() async {
+    try {
+      // Get token from secure storage
+      final token = await SecureStorage.getToken();
+      if (token == null) {
+        throw Exception(
+          'Token tidak ditemukan. Silakan login terlebih dahulu.',
+        );
+      }
+
+      final response = await ApiService.dio.get(
+        '/episode/user/progress',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = response.data;
+
+        // Check if response has the expected structure
+        if (responseData['status'] == 200 && responseData['data'] != null) {
+          final progressResponse = EpisodeProgressResponseModel.fromJson(
+            responseData,
+          );
+          return progressResponse.data;
+        } else {
+          throw Exception(
+            responseData['message'] ?? 'Gagal mengambil data progress',
+          );
+        }
+      } else {
+        throw Exception('Gagal mengambil data progress');
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw Exception('Token tidak valid. Silakan login ulang.');
+      } else if (e.response?.statusCode == 403) {
+        throw Exception('Akses ditolak. Silakan login terlebih dahulu.');
+      } else {
+        throw Exception(
+          e.response?.data?['message'] ?? 'Gagal mengambil data progress',
+        );
+      }
+    } catch (e) {
+      throw Exception('Error tidak terduga: $e');
+    }
+  }
 
   // Get episode progress by anime ID
   static Future<List<EpisodeProgressModel>> getEpisodeProgress(

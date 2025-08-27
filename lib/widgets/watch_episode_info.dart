@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
- import '../models/episode_detail_model.dart';
+import '../models/episode_detail_model.dart';
 
 class WatchEpisodeInfo extends StatelessWidget {
   final EpisodeDetailModel? episodeDetail;
@@ -43,7 +43,7 @@ class WatchEpisodeInfo extends StatelessWidget {
           Row(
             children: [
               _iconText(
-                Icons.bookmark,
+                Icons.verified,
                 episodeDetail?.anime.statusAnime ?? 'Ongoing',
               ),
               const SizedBox(width: 16),

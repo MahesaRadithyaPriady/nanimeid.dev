@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import '../models/anime_model.dart';
+import '../screen/protected/detail_anime_screen.dart';
+import 'home_search_field.dart';
 
 class AnimeListSection extends StatelessWidget {
-  final List<Map<String, String>> animeList;
+  final List<AnimeModel> animeList;
   final String selectedGenre;
   final String selectedStudio;
   final String selectedAZ;
@@ -30,16 +33,17 @@ class AnimeListSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sortedAnime = List<Map<String, String>>.from(animeList);
+    final sortedAnime = List<AnimeModel>.from(animeList);
     sortedAnime.sort(
       (a, b) => selectedAZ == 'A-Z'
-          ? a['title']!.compareTo(b['title']!)
-          : b['title']!.compareTo(a['title']!),
+          ? a.namaAnime.compareTo(b.namaAnime)
+          : b.namaAnime.compareTo(a.namaAnime),
     );
 
-    final groupedAnime = <String, List<Map<String, String>>>{};
+    final groupedAnime = <String, List<AnimeModel>>{};
     for (var anime in sortedAnime) {
-      final firstLetter = anime['title']![0].toUpperCase();
+      final title = anime.namaAnime.isNotEmpty ? anime.namaAnime : 'Unknown';
+      final firstLetter = title[0].toUpperCase();
       groupedAnime.putIfAbsent(firstLetter, () => []).add(anime);
     }
 
@@ -47,20 +51,7 @@ class AnimeListSection extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          TextField(
-            style: const TextStyle(color: Colors.white),
-            decoration: InputDecoration(
-              hintText: 'Cari anime...',
-              hintStyle: const TextStyle(color: Colors.white54),
-              prefixIcon: const Icon(Icons.search, color: Colors.white54),
-              filled: true,
-              fillColor: Colors.white10,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
+          const HomeSearchField(),
           const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -112,105 +103,131 @@ class AnimeListSection extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     ...animes.map(
-                      (anime) => Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white10),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                anime['image']!,
-                                width: 80,
-                                height: 100,
-                                fit: BoxFit.cover,
+                      (anime) => InkWell(
+                        onTap: () {
+                          // Dismiss any active focus (e.g., search field) before navigation
+                          FocusScope.of(context).unfocus();
+                          Navigator.of(context, rootNavigator: true).push(
+                            MaterialPageRoute(
+                              builder: (_) => DetailAnimeScreen(
+                                animeId: anime.id,
                               ),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    anime['title']!,
-                                    style: GoogleFonts.poppins(
-                                      color: Colors.white,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.bold,
+                          );
+                        },
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white10),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: (anime.gambarAnime.isNotEmpty)
+                                    ? Image.network(
+                                        anime.gambarAnime,
+                                        width: 80,
+                                        height: 100,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Container(
+                                        width: 80,
+                                        height: 100,
+                                        color: Colors.white10,
+                                        child: const Icon(
+                                          Icons.image_not_supported_outlined,
+                                          color: Colors.white38,
+                                        ),
+                                      ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      anime.namaAnime,
+                                      style: GoogleFonts.poppins(
+                                        color: Colors.white,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        LucideIcons.tags,
-                                        size: 14,
-                                        color: Colors.white54,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        anime['genre']!,
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.white70,
-                                          fontSize: 12,
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          LucideIcons.tags,
+                                          size: 14,
+                                          color: Colors.white54,
                                         ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      const Icon(
-                                        LucideIcons.clock,
-                                        size: 14,
-                                        color: Colors.white54,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        anime['status']!,
-                                        style: GoogleFonts.poppins(
-                                          color: Colors.white70,
-                                          fontSize: 12,
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            anime.genreAnime.join(', '),
+                                            style: GoogleFonts.poppins(
+                                              color: Colors.white70,
+                                              fontSize: 12,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Icon(
-                                        LucideIcons.fileText,
-                                        size: 14,
-                                        color: Colors.white54,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Expanded(
-                                        child: Text(
-                                          anime['sinopsis']!,
+                                        const SizedBox(width: 12),
+                                        const Icon(
+                                          LucideIcons.clock,
+                                          size: 14,
+                                          color: Colors.white54,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          anime.statusAnime,
                                           style: GoogleFonts.poppins(
-                                            color: Colors.white60,
+                                            color: Colors.white70,
                                             fontSize: 12,
                                           ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Icon(
+                                          LucideIcons.fileText,
+                                          size: 14,
+                                          color: Colors.white54,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            anime.sinopsisAnime,
+                                            style: GoogleFonts.poppins(
+                                              color: Colors.white60,
+                                              fontSize: 12,
+                                            ),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Icon(
-                              LucideIcons.chevronRight,
-                              color: Colors.white30,
-                              size: 20,
-                            ),
-                          ],
+                              const SizedBox(width: 8),
+                              const Icon(
+                                LucideIcons.chevronRight,
+                                color: Colors.white30,
+                                size: 20,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),

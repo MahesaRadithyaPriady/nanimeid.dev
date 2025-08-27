@@ -24,14 +24,44 @@ class _WatchVideoPlayerState extends State<WatchVideoPlayer> {
   Duration _totalDuration = Duration.zero;
   String _selectedQuality = 'Auto';
 
-  final List<String> _qualityOptions = [
-    'Auto',
-    '720p',
-    '480p',
-    '360p',
-    '1080p',
-    '2K',
-  ];
+  // Build dynamic title from episode detail
+  String get _videoTitle => widget.episodeDetail != null
+      ? 'Episode ${widget.episodeDetail!.nomorEpisode} - ${widget.episodeDetail!.judulEpisode}'
+      : 'Episode 8 - My Dress-Up Darling';
+
+  // Quality options come from API response
+  List<String> get _apiQualities {
+    final names = widget.episodeDetail?.availableQualityNames ?? [];
+    // Sort descending by resolution if recognizable
+    final order = ['2K', '1080p', '720p', '480p', '360p', '240p'];
+    names.sort((a, b) => order.indexOf(a).compareTo(order.indexOf(b)));
+    return names;
+  }
+
+  List<String> get _qualityOptions {
+    final api = _apiQualities;
+    if (api.isEmpty) {
+      return ['Auto'];
+    }
+    // prepend Auto
+    return ['Auto', ...api];
+  }
+
+  Map<String, String> get _qualityUrlMap {
+    final map = <String, String>{};
+    final best = widget.episodeDetail?.bestQuality?.sourceQuality;
+    if (best != null && best.isNotEmpty) {
+      map['Auto'] = best;
+    }
+    for (final name in widget.episodeDetail?.availableQualityNames ?? []) {
+      final url = widget.episodeDetail?.getQualityByName(name)?.sourceQuality;
+      if (url != null && url.isNotEmpty) {
+        map[name] = url;
+      }
+    }
+    return map;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -43,7 +73,8 @@ class _WatchVideoPlayerState extends State<WatchVideoPlayer> {
       // Use episode video source if available, otherwise use default
       String videoUrl = 'https://pixeldrain.com/api/file/icN64hL2';
 
-      if (widget.episodeDetail?.bestQuality?.sourceQuality != null) {
+      if (widget.episodeDetail?.bestQuality?.sourceQuality != null &&
+          widget.episodeDetail!.bestQuality!.sourceQuality.isNotEmpty) {
         videoUrl = widget.episodeDetail!.bestQuality!.sourceQuality;
       }
 
@@ -62,6 +93,63 @@ class _WatchVideoPlayerState extends State<WatchVideoPlayer> {
         _isLoading = false;
         _hasError = true;
       });
+    }
+  }
+
+  Future<void> _switchQualityTo(String quality) async {
+    try {
+      String? url;
+      if (quality == 'Auto') {
+        url = widget.episodeDetail?.bestQuality?.sourceQuality;
+      } else {
+        url = widget.episodeDetail?.getQualityByName(quality)?.sourceQuality;
+      }
+
+      if (url == null || url.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Kualitas $quality tidak tersedia',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.pinkAccent,
+          ),
+        );
+        return;
+      }
+
+      final wasPlaying = _controller.value.isPlaying;
+      final pos = _controller.value.position;
+
+      // Replace controller
+      _controller.removeListener(_videoListener);
+      final old = _controller;
+      final newController = VideoPlayerController.networkUrl(Uri.parse(url));
+      setState(() {
+        _isLoading = true;
+        _isBuffering = true;
+      });
+      await newController.initialize();
+      await newController.seekTo(pos);
+      if (wasPlaying) await newController.play();
+
+      setState(() {
+        _controller = newController;
+        _totalDuration = newController.value.duration;
+        _isLoading = false;
+      });
+      _controller.addListener(_videoListener);
+      await old.dispose();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengganti kualitas: $e',
+              style: GoogleFonts.poppins()),
+          backgroundColor: Colors.pinkAccent,
+        ),
+      );
     }
   }
 
@@ -115,8 +203,10 @@ class _WatchVideoPlayerState extends State<WatchVideoPlayer> {
       MaterialPageRoute(
         builder: (context) => WatchFullscreen(
           controller: _controller,
-          videoTitle: 'Episode 8 - My Dress-Up Darling',
+          videoTitle: _videoTitle,
           selectedQuality: _selectedQuality,
+          availableQualities: _qualityOptions,
+          qualityUrls: _qualityUrlMap,
           wasPlaying: wasPlaying,
         ),
       ),
@@ -126,6 +216,21 @@ class _WatchVideoPlayerState extends State<WatchVideoPlayer> {
       setState(() {
         _selectedQuality = result['quality'] ?? _selectedQuality;
       });
+      // Adopt controller returned from fullscreen to avoid re-init/loading
+      final returned = result['controller'];
+      if (returned is VideoPlayerController && returned != _controller) {
+        _controller.removeListener(_videoListener);
+        final old = _controller;
+        _controller = returned;
+        _controller.addListener(_videoListener);
+        setState(() {
+          _totalDuration = _controller.value.duration;
+          _currentPosition = _controller.value.position;
+          _isPlaying = _controller.value.isPlaying;
+          _isBuffering = _controller.value.isBuffering;
+        });
+        await old.dispose();
+      }
     }
 
     if (wasPlaying && mounted) {
@@ -189,11 +294,12 @@ class _WatchVideoPlayerState extends State<WatchVideoPlayer> {
                           ),
                         );
                       }
-                    : () {
+                    : () async {
                         setState(() {
                           _selectedQuality = quality;
                         });
                         Navigator.pop(context);
+                        await _onQualitySelected(quality);
                       },
               );
             }),
@@ -201,6 +307,24 @@ class _WatchVideoPlayerState extends State<WatchVideoPlayer> {
         ),
       ),
     );
+  }
+
+  Future<void> _onQualitySelected(String quality) async {
+    // Enforce locked tiers
+    if (quality == '1080p' || quality == '2K') {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Upgrade ke VIP untuk menonton dalam $quality',
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: Colors.pinkAccent,
+        ),
+      );
+      return;
+    }
+    await _switchQualityTo(quality);
   }
 
   String _formatDuration(Duration duration) {
@@ -313,7 +437,7 @@ class _WatchVideoPlayerState extends State<WatchVideoPlayer> {
                             child: Align(
                               alignment: Alignment.centerLeft,
                               child: Text(
-                                'Episode 8 - My Dress-Up Darling',
+                                _videoTitle,
                                 style: GoogleFonts.poppins(
                                   color: Colors.white,
                                   fontSize: 14,

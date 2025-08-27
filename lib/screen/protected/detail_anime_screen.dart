@@ -7,6 +7,7 @@ import '../../models/episode_model.dart';
 import '../../models/episode_progress_model.dart';
 import '../../services/anime_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/favorite_service.dart';
 
 class DetailAnimeScreen extends StatefulWidget {
   final int animeId;
@@ -27,6 +28,8 @@ class _DetailAnimeScreenState extends State<DetailAnimeScreen> {
   bool isLoadingEpisodes = true;
   bool isLoadingProgress = true;
   String? errorMessage;
+  bool isFavorite = false;
+  bool isTogglingFavorite = false;
 
   @override
   void initState() {
@@ -47,11 +50,12 @@ class _DetailAnimeScreenState extends State<DetailAnimeScreen> {
       final isLoggedIn = await AuthService.isLoggedIn();
 
       if (isLoggedIn) {
-        // Load anime detail, episodes, and progress concurrently
+        // Load anime detail, episodes, progress, and favorite status concurrently
         await Future.wait([
           _loadAnimeDetail(),
           _loadEpisodes(),
           _loadEpisodeProgress(),
+          _loadFavoriteStatus(),
         ]);
       } else {
         // Load only anime detail and episodes if not logged in
@@ -295,6 +299,72 @@ class _DetailAnimeScreenState extends State<DetailAnimeScreen> {
     );
   }
 
+  Future<void> _onFavoritePressed() async {
+    if (isTogglingFavorite) return;
+    setState(() => isTogglingFavorite = true);
+    try {
+      bool ok = false;
+      if (isFavorite) {
+        // Already favorited -> delete
+        ok = await FavoriteService.deleteAnimeFavorite(widget.animeId);
+        if (ok) {
+          setState(() => isFavorite = false);
+        }
+      } else {
+        // Not favorited -> add
+        ok = await FavoriteService.toggleAnimeFavorite(widget.animeId);
+        if (ok) {
+          setState(() => isFavorite = true);
+        }
+      }
+      if (ok) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Status favorit diperbarui'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal menambahkan ke favorit'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Terjadi kesalahan: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isTogglingFavorite = false);
+    }
+  }
+
+  Future<void> _loadFavoriteStatus() async {
+    try {
+      final status = await FavoriteService.getAnimeFavoriteStatus(widget.animeId);
+      if (mounted) {
+        setState(() {
+          isFavorite = status;
+        });
+      }
+    } catch (e) {
+      // ignore error silently, keep default false
+      // print('Favorite status error: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Show loading skeleton if still loading
@@ -390,7 +460,13 @@ class _DetailAnimeScreenState extends State<DetailAnimeScreen> {
                         ),
                       ),
                     ),
-                    const Icon(Icons.favorite_border, color: Colors.white70),
+                    IconButton(
+                      onPressed: isTogglingFavorite ? null : _onFavoritePressed,
+                      icon: Icon(
+                        isFavorite ? Icons.favorite : Icons.favorite_border,
+                        color: isFavorite ? Colors.pinkAccent : Colors.white70,
+                      ),
+                    ),
                     const SizedBox(width: 12),
                     const Icon(Icons.bookmark_border, color: Colors.white70),
                   ],

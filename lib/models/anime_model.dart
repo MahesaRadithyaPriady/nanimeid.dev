@@ -36,8 +36,8 @@ class AnimeModel {
         namaAnime: json['nama_anime'] ?? '',
         gambarAnime: json['gambar_anime'] ?? '',
         tagsAnime: _parseStringList(json['tags_anime']),
-        ratingAnime: json['rating_anime'] ?? '0.0',
-        viewAnime: json['view_anime'] ?? '0',
+        ratingAnime: (json['rating_anime']?.toString() ?? '0.0'),
+        viewAnime: (json['view_anime']?.toString() ?? '0'),
         tanggalRilisAnime: json['tanggal_rilis_anime'] ?? '',
         statusAnime: json['status_anime'] ?? '',
         genreAnime: _parseStringList(json['genre_anime']),
@@ -199,6 +199,106 @@ class AnimeResponseModel {
       print('JSON data: $json');
       rethrow;
     }
+  }
+
+  bool get isSuccess => status == 200;
+  bool get hasData => data.isNotEmpty;
+}
+
+// ==================== A-Z Response Models ====================
+
+class PaginationInfo {
+  final int page;
+  final int limit;
+  final int total;
+  final int totalPages;
+  final bool hasNext;
+  final bool hasPrev;
+
+  PaginationInfo({
+    required this.page,
+    required this.limit,
+    required this.total,
+    required this.totalPages,
+    required this.hasNext,
+    required this.hasPrev,
+  });
+
+  factory PaginationInfo.fromJson(Map<String, dynamic> json) {
+    return PaginationInfo(
+      page: json['page'] ?? 1,
+      limit: json['limit'] ?? 24,
+      total: json['total'] ?? 0,
+      totalPages: json['totalPages'] ?? 0,
+      hasNext: json['hasNext'] ?? false,
+      hasPrev: json['hasPrev'] ?? false,
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'page': page,
+        'limit': limit,
+        'total': total,
+        'totalPages': totalPages,
+        'hasNext': hasNext,
+        'hasPrev': hasPrev,
+      };
+}
+
+class AnimeAZFilters {
+  final String? letter;
+  final String? genre;
+  final String? studio;
+
+  AnimeAZFilters({this.letter, this.genre, this.studio});
+
+  factory AnimeAZFilters.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return AnimeAZFilters();
+    return AnimeAZFilters(
+      letter: json['letter']?.toString(),
+      genre: json['genre']?.toString(),
+      studio: json['studio']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'letter': letter,
+        'genre': genre,
+        'studio': studio,
+      }..removeWhere((key, value) => value == null);
+}
+
+class AnimeAZResponseModel {
+  final int status;
+  final String message;
+  final List<AnimeModel> data;
+  final PaginationInfo? pagination;
+  final AnimeAZFilters? filters;
+  final String? order;
+
+  AnimeAZResponseModel({
+    required this.status,
+    required this.message,
+    required this.data,
+    this.pagination,
+    this.filters,
+    this.order,
+  });
+
+  factory AnimeAZResponseModel.fromJson(Map<String, dynamic> json) {
+    return AnimeAZResponseModel(
+      status: json['status'] ?? 0,
+      message: json['message'] ?? '',
+      data: (json['data'] as List<dynamic>?)
+              ?.map((e) => AnimeModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      pagination: json['pagination'] != null
+          ? PaginationInfo.fromJson(json['pagination'] as Map<String, dynamic>)
+          : null,
+      filters: AnimeAZFilters.fromJson(json['filters'] as Map<String, dynamic>?),
+      order: json['order']?.toString(),
+    );
   }
 
   bool get isSuccess => status == 200;

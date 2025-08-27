@@ -1,65 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../widgets/home_header.dart';
+import '../../models/favorite_model.dart';
+import '../../services/favorite_service.dart';
+import 'detail_anime_screen.dart';
+import '../../widgets/exit_confirmation.dart';
 
 class FavoriteScreen extends StatelessWidget {
   const FavoriteScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final favoriteList = [
-      {
-        'title': 'Naruto',
-        'image': 'https://picsum.photos/600/400',
-        'genre': 'Ninja',
-        'synopsis': 'Perjalanan Naruto menjadi Hokage dan diakui oleh desanya.',
-        'dateAdded': '12 Juli 2025',
-        'status': 'Completed'
-      },
-      {
-        'title': 'One Piece',
-        'image': 'https://picsum.photos/600/400',
-        'genre': 'Adventure',
-        'synopsis': 'Petualangan Luffy dan kru topi jerami mencari One Piece.',
-        'dateAdded': '18 Juli 2025',
-        'status': 'Ongoing'
-      },
-      {
-        'title': 'Demon Slayer',
-        'image': 'https://picsum.photos/600/400',
-        'genre': 'Action',
-        'synopsis': 'Tanjiro menjadi pembasmi iblis demi menyelamatkan adiknya.',
-        'dateAdded': '27 Juli 2025',
-        'status': 'Hiatus'
-      },
-    ];
-
-    return DefaultTabController(
-      length: 3, // Jumlah tab
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        body: SafeArea(
-          child: Column(
-            children: [
-              const HomeHeader(coinBalance: 1000, isVip: true),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 12,
-                ),
-                child: Row(
-                  children: [
-                    Text(
-                      'Favorit Saya',
-                      style: GoogleFonts.poppins(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+    return WillPopScope(
+      onWillPop: () => showExitConfirmationDialog(context),
+      child: DefaultTabController(
+        length: 3, // Jumlah tab
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: SafeArea(
+            child: Column(
+              children: [
+                const HomeHeader(coinBalance: 1000, isVip: true),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Favorit Saya',
+                        style: GoogleFonts.poppins(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
 
               // Tab menu
               TabBar(
@@ -79,13 +58,11 @@ class FavoriteScreen extends StatelessWidget {
                 child: TabBarView(
                   children: [
                     // Tab Ongoing
-                    buildGridView(favoriteList.where((a) => a['status'] == 'Ongoing').toList()),
-
+                    _FavoriteTab(status: 'ongoing'),
                     // Tab Completed
-                    buildGridView(favoriteList.where((a) => a['status'] == 'Completed').toList()),
-
+                    _FavoriteTab(status: 'completed'),
                     // Tab Hiatus
-                    buildGridView(favoriteList.where((a) => a['status'] == 'Hiatus').toList()),
+                    _FavoriteTab(status: 'hiatus'),
                   ],
                 ),
               ),
@@ -93,89 +70,166 @@ class FavoriteScreen extends StatelessWidget {
           ),
         ),
       ),
+      ),
+    );
+  }
+}
+
+class _FavoriteTab extends StatelessWidget {
+  final String status; // ongoing | completed | hiatus
+  const _FavoriteTab({required this.status});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<FavoriteResponseModel>(
+      future: FavoriteService.getMyFavoriteAnime(status: status),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: SizedBox(
+              width: 36,
+              height: 36,
+              child: CircularProgressIndicator(color: Colors.pinkAccent, strokeWidth: 2),
+            ),
+          );
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Gagal memuat favorit',
+              style: GoogleFonts.poppins(color: Colors.redAccent),
+            ),
+          );
+        }
+        final data = snapshot.data;
+        final items = data?.items ?? const <FavoriteItemModel>[];
+        if (items.isEmpty) {
+          return Center(
+            child: Text(
+              'Tidak ada favorit',
+              style: GoogleFonts.poppins(color: Colors.white60),
+            ),
+          );
+        }
+        return _buildGridView(items);
+      },
     );
   }
 
-Widget buildGridView(List<Map<String, String>> list) {
-  return GridView.builder(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 2,
-      childAspectRatio: 0.68,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 16,
-    ),
-    itemCount: list.length,
-    itemBuilder: (context, index) {
-      final anime = list[index];
+  Widget _buildGridView(List<FavoriteItemModel> list) {
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.64,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: list.length,
+      itemBuilder: (context, index) {
+        final item = list[index];
+        final anime = item.anime;
+        final genres = anime.genreAnime.join(', ');
+        final dateAdded = _formatDate(item.createdAt);
 
-      return Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1C1C1F),
+        return InkWell(
           borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
+          onTap: () {
+            Navigator.of(context, rootNavigator: true).push(
+              MaterialPageRoute(
+                builder: (_) => DetailAnimeScreen(
+                  animeId: anime.id,
+                  animeData: anime.toMap(),
+                ),
               ),
-              child: Image.network(
-                anime['image']!,
-                height: 130,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
+            );
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1C1F),
+              borderRadius: BorderRadius.circular(12),
             ),
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    anime['title']!,
-                    style: GoogleFonts.poppins(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  child: Image.network(
+                    anime.gambarAnime,
+                    height: 110,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          anime.namaAnime,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          genres,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
+                            color: Colors.pinkAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Flexible(
+                          child: Text(
+                            anime.sinopsisAnime,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.poppins(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              height: 1.3,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Ditambahkan: $dateAdded',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white60,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    anime['genre']!,
-                    style: GoogleFonts.poppins(
-                      color: Colors.pinkAccent,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    anime['synopsis']!,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.poppins(
-                      color: Colors.white70,
-                      fontSize: 12, // diperbesar
-                      height: 1.3, // lebih nyaman dibaca
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Ditambahkan: ${anime['dateAdded']!}',
-                    style: GoogleFonts.poppins(
-                      color: Colors.white60,
-                      fontSize: 11, // tidak terlalu kecil
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    },
-  );
-}
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime? d) {
+    if (d == null) return '-';
+    // Simple yyyy-MM-dd
+    final y = d.year.toString().padLeft(4, '0');
+    final m = d.month.toString().padLeft(2, '0');
+    final day = d.day.toString().padLeft(2, '0');
+    return '$y-$m-$day';
+  }
 }

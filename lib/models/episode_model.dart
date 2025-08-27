@@ -216,13 +216,26 @@ class EpisodeResponseModel {
 
   factory EpisodeResponseModel.fromJson(Map<String, dynamic> json) {
     try {
+      // data dari API dapat berupa List atau Map (objek tunggal)
+      final dynamic rawData = json['data'];
+
+      List<EpisodeModel> parsedData = [];
+      if (rawData is List) {
+        parsedData = rawData
+            .map((item) => EpisodeModel.fromJson(
+                  item is Map<String, dynamic> ? item : <String, dynamic>{},
+                ))
+            .toList();
+      } else if (rawData is Map<String, dynamic>) {
+        parsedData = [EpisodeModel.fromJson(rawData)];
+      } else {
+        parsedData = [];
+      }
+
       return EpisodeResponseModel(
         status: json['status'] ?? 0,
         message: json['message'] ?? '',
-        data: (json['data'] as List<dynamic>?)
-                ?.map((item) => EpisodeModel.fromJson(item))
-                .toList() ??
-            [],
+        data: parsedData,
       );
     } catch (e) {
       print('Error parsing EpisodeResponseModel: $e');

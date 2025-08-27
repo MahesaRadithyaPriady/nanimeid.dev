@@ -1,10 +1,15 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:wave/wave.dart';
 import 'package:wave/config.dart';
 import 'onboarding_screen.dart';
+import '../services/api_service.dart';
+import '../services/profile_service.dart';
+import '../utils/secure_storage.dart';
+import 'protected/navigation/main_navigation.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -28,32 +33,133 @@ class _SplashScreenState extends State<SplashScreen> {
   ];
 
   Route _createRouteToOnboarding() {
-  return PageRouteBuilder(
-    transitionDuration: const Duration(milliseconds: 600),
-    pageBuilder: (context, animation, secondaryAnimation) =>
-        const OnboardingScreen(), 
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      const begin = Offset(0.0, 1.0); // dari bawah ke atas
-      const end = Offset.zero;
-      const curve = Curves.easeOutCubic;
+    return PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 600),
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          const OnboardingScreen(),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(0.0, 1.0); // dari bawah ke atas
+        const end = Offset.zero;
+        const curve = Curves.easeOutCubic;
 
-      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-      var offsetAnimation = animation.drive(tween);
+        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        var offsetAnimation = animation.drive(tween);
 
-      return SlideTransition(position: offsetAnimation, child: child);
-    },
-  );
-}
+        return SlideTransition(position: offsetAnimation, child: child);
+      },
+    );
+  }
 
+  Route _createRouteToHome() {
+    return PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 600),
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          const MainNavigation(),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(0.0, 1.0); // dari bawah ke atas
+        const end = Offset.zero;
+        const curve = Curves.easeOutCubic;
+
+        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        var offsetAnimation = animation.drive(tween);
+
+        return SlideTransition(position: offsetAnimation, child: child);
+      },
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     selectedQuote = _quotes[Random().nextInt(_quotes.length)];
+    _bootstrap();
+  }
 
-    Timer(const Duration(seconds: 5), () {
+  Future<void> _showConnectionErrorDialog() async {
+    if (!mounted) return;
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: const [
+              Icon(Icons.wifi_off_rounded, color: Colors.redAccent),
+              SizedBox(width: 8),
+              Text('Gagal Terhubung', style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: const Text(
+            'Tidak dapat terhubung ke server. Periksa koneksi internet Anda atau coba lagi nanti.',
+            style: TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                SystemNavigator.pop();
+              },
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
+              child: const Text('Keluar'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.pinkAccent,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _bootstrap();
+              },
+              child: const Text('Coba Lagi'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _bootstrap() async {
+    // Initialize API with auth interceptor
+    ApiService.initialize();
+
+    final token = await SecureStorage.getToken();
+    if (!mounted) return;
+
+    // If no token, go straight to onboarding after short delay
+    if (token == null || token.isEmpty) {
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
       Navigator.of(context).pushReplacement(_createRouteToOnboarding());
-    });
+      return;
+    }
+
+    try {
+      // Try to fetch profile using saved token
+      final profileRes = await ProfileService.getMyProfile();
+      if (!profileRes.isSuccess) {
+        await Future.delayed(const Duration(seconds: 2));
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(_createRouteToOnboarding());
+        return;
+      }
+      // Print entire API output as requested
+      // ignore: avoid_print
+      print(profileRes.toJson());
+
+      // Success: go to MainNavigation after short delay
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(_createRouteToHome());
+      return;
+    } catch (e) {
+      // Jika API tidak dapat diakses (timeout/connection error), tampilkan dialog retry/keluar
+      await _showConnectionErrorDialog();
+      return;
+    }
+
+    // No further action; navigation handled above for all branches
   }
 
   @override
@@ -131,9 +237,33 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            const CircularProgressIndicator(
-              color: Colors.pinkAccent,
-              strokeWidth: 2,
+            // Enhanced loading indicator
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: const SizedBox(
+                    width: 180,
+                    child: LinearProgressIndicator(
+                      minHeight: 6,
+                      color: Colors.pinkAccent,
+                      backgroundColor: Colors.white12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Menyiapkan aplikasi...',
+                  style: GoogleFonts.poppins(
+                    textStyle: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

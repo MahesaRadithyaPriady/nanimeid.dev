@@ -17,6 +17,30 @@ class WatchAnimeScreen extends StatefulWidget {
   State<WatchAnimeScreen> createState() => _WatchAnimeScreenState();
 }
 
+// Lightweight skeleton widget helper (no external deps)
+class _Skeleton extends StatelessWidget {
+  final double width;
+  final double height;
+  final double radius;
+  const _Skeleton.box({
+    required this.width,
+    required this.height,
+    this.radius = 6,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white10,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+}
+
 class _WatchAnimeScreenState extends State<WatchAnimeScreen> {
   EpisodeDetailModel? episodeDetail;
   bool isLoading = true;
@@ -107,18 +131,155 @@ class _WatchAnimeScreenState extends State<WatchAnimeScreen> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
+      // Skeleton loading UI (no dependency)
       return Scaffold(
         backgroundColor: Colors.black,
         body: SafeArea(
-          child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 32),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const CircularProgressIndicator(color: Colors.pinkAccent),
+                // Video skeleton
+                Container(
+                  width: double.infinity,
+                  height: 220,
+                  color: Colors.white10,
+                ),
                 const SizedBox(height: 16),
-                Text(
-                  'Memuat episode...',
-                  style: TextStyle(color: Colors.white, fontSize: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title line
+                      _Skeleton.box(width: double.infinity, height: 18),
+                      const SizedBox(height: 12),
+                      // Meta row
+                      Row(
+                        children: const [
+                          _Skeleton.box(width: 80, height: 14),
+                          SizedBox(width: 16),
+                          _Skeleton.box(width: 60, height: 14),
+                          SizedBox(width: 16),
+                          _Skeleton.box(width: 70, height: 14),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      // Action buttons
+                      Row(
+                        children: const [
+                          _Skeleton.box(width: 90, height: 36, radius: 8),
+                          SizedBox(width: 12),
+                          _Skeleton.box(width: 90, height: 36, radius: 8),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Episode list skeleton
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _Skeleton.box(width: 140, height: 16),
+                      const SizedBox(height: 12),
+                      Column(
+                        children: List.generate(
+                          3,
+                          (i) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              children: const [
+                                _Skeleton.box(width: 64, height: 64, radius: 8),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _Skeleton.box(
+                                        width: double.infinity,
+                                        height: 14,
+                                      ),
+                                      SizedBox(height: 8),
+                                      _Skeleton.box(width: 180, height: 12),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Progress bar skeleton
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      _Skeleton.box(width: 160, height: 16),
+                      SizedBox(height: 12),
+                      _Skeleton.box(
+                        width: double.infinity,
+                        height: 8,
+                        radius: 4,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Recommendation skeleton
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _Skeleton.box(width: 180, height: 16),
+                      const SizedBox(height: 12),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: List.generate(
+                            4,
+                            (i) => const Padding(
+                              padding: EdgeInsets.only(right: 12),
+                              child: _Skeleton.box(
+                                width: 120,
+                                height: 160,
+                                radius: 8,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Comment skeleton
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: List.generate(
+                      3,
+                      (i) => const Padding(
+                        padding: EdgeInsets.only(bottom: 16),
+                        child: _Skeleton.box(
+                          width: double.infinity,
+                          height: 60,
+                          radius: 8,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),

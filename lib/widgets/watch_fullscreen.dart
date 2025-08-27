@@ -8,6 +8,8 @@ class WatchFullscreen extends StatefulWidget {
   final VideoPlayerController controller;
   final String videoTitle;
   final String selectedQuality;
+  final List<String> availableQualities;
+  final Map<String, String> qualityUrls;
   final bool wasPlaying;
 
   const WatchFullscreen({
@@ -15,6 +17,8 @@ class WatchFullscreen extends StatefulWidget {
     required this.controller,
     required this.videoTitle,
     required this.selectedQuality,
+    required this.availableQualities,
+    required this.qualityUrls,
     required this.wasPlaying,
   });
 
@@ -32,8 +36,7 @@ class _WatchFullscreenState extends State<WatchFullscreen> {
   late String _selectedQuality;
   double _playbackSpeed = 1.0;
   BoxFit _videoFit = BoxFit.contain;
-
-  final List<String> _qualityOptions = ['Auto', '720p', '480p', '360p'];
+  late List<String> _qualityOptions;
   final List<Map<String, dynamic>> _fitModes = [
     {'fit': BoxFit.contain, 'icon': Icons.fit_screen, 'label': 'Contain'},
     {'fit': BoxFit.cover, 'icon': Icons.crop_free, 'label': 'Cover'},
@@ -48,6 +51,9 @@ class _WatchFullscreenState extends State<WatchFullscreen> {
   void initState() {
     super.initState();
     _selectedQuality = widget.selectedQuality;
+    _qualityOptions = widget.availableQualities.isNotEmpty
+        ? widget.availableQualities
+        : ['Auto'];
     _setLandscapeOrientation();
     _initializeFromExistingController();
     WakelockPlus.enable();
@@ -126,7 +132,91 @@ class _WatchFullscreenState extends State<WatchFullscreen> {
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     WakelockPlus.disable();
-    Navigator.pop(context, {'quality': _selectedQuality});
+    Navigator.pop(context, {
+      'quality': _selectedQuality,
+      'controller': _controller,
+    });
+  }
+
+  Future<void> _onQualitySelected(String quality) async {
+    // Enforce locked tiers
+    if (quality == '1080p' || quality == '2K') {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Upgrade ke VIP untuk menonton dalam $quality',
+            style: GoogleFonts.poppins(),
+          ),
+          backgroundColor: Colors.pinkAccent,
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _selectedQuality = quality;
+    });
+    await _switchQualityTo(quality);
+  }
+
+  Future<void> _switchQualityTo(String quality) async {
+    try {
+      String? url;
+      if (quality == 'Auto') {
+        url = widget.qualityUrls['Auto'];
+      } else {
+        url = widget.qualityUrls[quality];
+      }
+
+      if (url == null || url.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Kualitas $quality tidak tersedia',
+              style: GoogleFonts.poppins(),
+            ),
+            backgroundColor: Colors.pinkAccent,
+          ),
+        );
+        return;
+      }
+
+      final wasPlaying = _controller.value.isPlaying;
+      final pos = _controller.value.position;
+
+      _controller.removeListener(_videoListener);
+      final old = _controller;
+      final newController = VideoPlayerController.networkUrl(Uri.parse(url));
+      setState(() {
+        _isBuffering = true;
+      });
+      await newController.initialize();
+      await newController.seekTo(pos);
+      if (wasPlaying) await newController.play();
+
+      setState(() {
+        _controller = newController;
+        _totalDuration = newController.value.duration;
+      });
+      _controller.addListener(_videoListener);
+      await old.dispose();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal mengganti kualitas: $e',
+              style: GoogleFonts.poppins()),
+          backgroundColor: Colors.pinkAccent,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBuffering = false;
+        });
+      }
+    }
   }
 
   void _showQualitySelector() {
@@ -171,25 +261,44 @@ class _WatchFullscreenState extends State<WatchFullscreen> {
                     itemCount: _qualityOptions.length,
                     itemBuilder: (context, index) {
                       final quality = _qualityOptions[index];
+                      final bool isLocked = (quality == '1080p' || quality == '2K');
                       return ListTile(
                         leading: Icon(
-                          _selectedQuality == quality
+                          _selectedQuality == quality && !isLocked
                               ? Icons.check_circle
-                              : Icons.radio_button_unchecked,
-                          color: _selectedQuality == quality
-                              ? Colors.pinkAccent
-                              : Colors.white70,
+                              : isLocked
+                                  ? Icons.lock
+                                  : Icons.radio_button_unchecked,
+                          color: isLocked
+                              ? Colors.grey
+                              : _selectedQuality == quality
+                                  ? Colors.pinkAccent
+                                  : Colors.white70,
                         ),
                         title: Text(
                           quality,
-                          style: GoogleFonts.poppins(color: Colors.white),
+                          style: GoogleFonts.poppins(
+                            color: isLocked ? Colors.grey : Colors.white,
+                          ),
                         ),
-                        onTap: () {
-                          setState(() {
-                            _selectedQuality = quality;
-                          });
-                          Navigator.pop(context);
-                        },
+                        onTap: isLocked
+                            ? () {
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Upgrade ke VIP untuk menonton dalam $quality',
+                                      style: GoogleFonts.poppins(),
+                                    ),
+                                    backgroundColor: Colors.pinkAccent,
+                                  ),
+                                );
+                              }
+                            : () async {
+                                final selected = quality;
+                                Navigator.pop(context);
+                                await _onQualitySelected(selected);
+                              },
                       );
                     },
                   ),
@@ -349,6 +458,11 @@ class _WatchFullscreenState extends State<WatchFullscreen> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
@@ -375,6 +489,35 @@ class _WatchFullscreenState extends State<WatchFullscreen> {
                       width: _controller.value.size.width,
                       height: _controller.value.size.height,
                       child: VideoPlayer(_controller),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Watermark (top-right, plain text)
+              Positioned(
+                right: 16,
+                top: 12,
+                child: IgnorePointer(
+                  ignoring: true,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: RichText(
+                      text: TextSpan(
+                        style: GoogleFonts.montserrat(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.4,
+                        ),
+                        children: const [
+                          TextSpan(text: 'Nanime', style: TextStyle(color: Colors.white)),
+                          TextSpan(text: 'ID', style: TextStyle(color: Colors.redAccent)),
+                        ],
+                      ),
                     ),
                   ),
                 ),

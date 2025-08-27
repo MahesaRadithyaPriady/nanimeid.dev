@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
 import '../../widgets/home_header.dart';
 import '../../widgets/anime_list_tab_animelist.dart';
-import 'package:flutter/services.dart';
 import '../../widgets/anime_list_tab_jadwal_rilis.dart';
+import '../../models/anime_model.dart';
+import '../../services/anime_service.dart';
+import '../../widgets/exit_confirmation.dart';
 
 class AnimeListScreen extends StatelessWidget {
   const AnimeListScreen({super.key});
@@ -25,93 +28,45 @@ class _AnimeListPageState extends State<AnimeListPage> {
   String selectedGenre = 'Semua';
   String selectedStudio = 'Semua';
   String selectedAZ = 'A-Z';
+  bool isLoading = true;
+  String? errorMessage;
+  List<AnimeModel> animes = [];
 
   final genreOptions = ['Semua', 'Action', 'Romance', 'Isekai', 'Comedy'];
   final studioOptions = ['Semua', 'MAPPA', 'Ufotable', 'CloverWorks'];
   final azOptions = ['A-Z', 'Z-A'];
 
-  final animeList = [
-    {
-      'title': 'Attack on Titan',
-      'image': 'https://picsum.photos/600/400',
-      'genre': 'Action',
-      'status': 'Completed',
-      'sinopsis':
-          'Manusia melawan para raksasa demi bertahan hidup dalam dunia penuh misteri dan kehancuran.',
-    },
-    {
-      'title': 'Bleach',
-      'image': 'https://picsum.photos/600/400',
-      'genre': 'Action',
-      'status': 'Completed',
-      'sinopsis':
-          'Ichigo mendapat kekuatan Shinigami dan melawan roh jahat dalam pertempuran antar dunia.',
-    },
-    {
-      'title': 'Blue Lock',
-      'image': 'https://picsum.photos/600/400',
-      'genre': 'Sports',
-      'status': 'Ongoing',
-      'sinopsis':
-          'Jepang membuat proyek gila untuk mencetak striker egois terbaik dalam dunia sepak bola.',
-    },
-    {
-      'title': 'Demon Slayer',
-      'image': 'https://picsum.photos/600/400',
-      'genre': 'Action',
-      'status': 'Ongoing',
-      'sinopsis':
-          'Tanjiro menjadi pembasmi iblis untuk menyelamatkan adiknya dan membalas dendam keluarganya.',
-    },
-    {
-      'title': 'Dragon Ball',
-      'image': 'https://picsum.photos/600/400',
-      'genre': 'Action',
-      'status': 'Completed',
-      'sinopsis':
-          'Petualangan Goku mengumpulkan bola naga dan bertarung demi melindungi bumi.',
-    },
-    {
-      'title': 'Jujutsu Kaisen',
-      'image': 'https://picsum.photos/600/400',
-      'genre': 'Supernatural',
-      'status': 'Ongoing',
-      'sinopsis':
-          'Itadori Yuji terlibat dunia kutukan dan menjadi wadah dari roh terkutuk Sukuna.',
-    },
-    {
-      'title': 'My Hero Academia',
-      'image': 'https://picsum.photos/600/400',
-      'genre': 'Superhero',
-      'status': 'Ongoing',
-      'sinopsis':
-          'Izuku bercita-cita menjadi pahlawan dalam dunia penuh kekuatan super yang disebut quirk.',
-    },
-    {
-      'title': 'Naruto',
-      'image': 'https://picsum.photos/600/400',
-      'genre': 'Ninja',
-      'status': 'Completed',
-      'sinopsis':
-          'Perjalanan bocah nakal bernama Naruto menjadi Hokage yang diakui oleh desanya.',
-    },
-    {
-      'title': 'One Piece',
-      'image': 'https://picsum.photos/600/400',
-      'genre': 'Adventure',
-      'status': 'Ongoing',
-      'sinopsis':
-          'Petualangan Luffy dan kru topi jerami untuk menemukan harta karun terbesar: One Piece.',
-    },
-    {
-      'title': 'Solo Leveling',
-      'image': 'https://picsum.photos/600/400',
-      'genre': 'Isekai',
-      'status': 'Completed',
-      'sinopsis':
-          'Hunter lemah Jin-Woo berubah menjadi hunter terkuat setelah menemukan sistem misterius.',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchAnimeAZ();
+  }
+
+  Future<void> _fetchAnimeAZ() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+    try {
+      final response = await AnimeService.getAnimeAZ(
+        letter: null, // optional letter filter can be added to UI later
+        genre: selectedGenre != 'Semua' ? selectedGenre : null,
+        studio: selectedStudio != 'Semua' ? selectedStudio : null,
+        page: 1,
+        limit: 24,
+        order: selectedAZ == 'A-Z' ? 'asc' : 'desc',
+      );
+      setState(() {
+        animes = response.data;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = e.toString();
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,44 +79,94 @@ class _AnimeListPageState extends State<AnimeListPage> {
       ),
     );
 
-    return SafeArea(
-      child: DefaultTabController(
-        length: 2,
-        child: Scaffold(
-          backgroundColor: Colors.black,
-          body: Column(
-            children: [
-              const HomeHeader(coinBalance: 1000, isVip: true),
-              Container(
-                color: Colors.black,
-                child: TabBar(
-                  indicatorColor: Colors.pinkAccent,
-                  labelColor: Colors.pinkAccent,
-                  unselectedLabelColor: Colors.white54,
-                  labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
-                  tabs: const [
-                    Tab(text: 'Anime List'),
-                    Tab(text: 'Jadwal Rilis'),
-                  ],
+    return WillPopScope(
+      onWillPop: () => showExitConfirmationDialog(context),
+      child: SafeArea(
+        child: DefaultTabController(
+          length: 2,
+          child: Scaffold(
+            backgroundColor: Colors.black,
+            body: Column(
+              children: [
+                const HomeHeader(coinBalance: 1000, isVip: true),
+                Container(
+                  color: Colors.black,
+                  child: TabBar(
+                    indicatorColor: Colors.pinkAccent,
+                    labelColor: Colors.pinkAccent,
+                    unselectedLabelColor: Colors.white54,
+                    labelStyle: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+                    tabs: const [
+                      Tab(text: 'Anime List'),
+                      Tab(text: 'Jadwal Rilis'),
+                    ],
+                  ),
                 ),
-              ),
+              
               Expanded(
                 child: TabBarView(
                   children: [
-                    AnimeListSection(
-                      animeList: animeList,
-                      selectedGenre: selectedGenre,
-                      selectedStudio: selectedStudio,
-                      selectedAZ: selectedAZ,
-                      genreOptions: genreOptions,
-                      studioOptions: studioOptions,
-                      azOptions: azOptions,
-                      onGenreChanged: (val) =>
-                          setState(() => selectedGenre = val),
-                      onStudioChanged: (val) =>
-                          setState(() => selectedStudio = val),
-                      onAZChanged: (val) => setState(() => selectedAZ = val),
-                    ),
+                    Builder(builder: (context) {
+                      if (isLoading) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.pinkAccent,
+                          ),
+                        );
+                      }
+                      if (errorMessage != null) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error_outline,
+                                    color: Colors.redAccent),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Gagal memuat data:\n$errorMessage',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white70,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 12),
+                                ElevatedButton(
+                                  onPressed: _fetchAnimeAZ,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.pinkAccent,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                  child: const Text('Coba lagi'),
+                                )
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      return AnimeListSection(
+                        animeList: animes,
+                        selectedGenre: selectedGenre,
+                        selectedStudio: selectedStudio,
+                        selectedAZ: selectedAZ,
+                        genreOptions: genreOptions,
+                        studioOptions: studioOptions,
+                        azOptions: azOptions,
+                        onGenreChanged: (val) {
+                          setState(() => selectedGenre = val);
+                          _fetchAnimeAZ();
+                        },
+                        onStudioChanged: (val) {
+                          setState(() => selectedStudio = val);
+                          _fetchAnimeAZ();
+                        },
+                        onAZChanged: (val) {
+                          setState(() => selectedAZ = val);
+                          _fetchAnimeAZ();
+                        },
+                      );
+                    }),
                     const JadwalRilisTab(),
                   ],
                 ),
@@ -169,6 +174,7 @@ class _AnimeListPageState extends State<AnimeListPage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

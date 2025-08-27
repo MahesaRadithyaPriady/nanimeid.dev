@@ -19,6 +19,30 @@ class WatchEpisodeList extends StatefulWidget {
   State<WatchEpisodeList> createState() => _WatchEpisodeListState();
 }
 
+// Lightweight skeleton helper for this file
+class _Skeleton extends StatelessWidget {
+  final double width;
+  final double height;
+  final double radius;
+  const _Skeleton.box({
+    required this.width,
+    required this.height,
+    this.radius = 6,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white10,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+}
+
 class _WatchEpisodeListState extends State<WatchEpisodeList> {
   bool _isAscending = true;
   List<EpisodeModel> episodes = [];
@@ -56,10 +80,27 @@ class _WatchEpisodeListState extends State<WatchEpisodeList> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16),
-        child: Center(
-          child: CircularProgressIndicator(color: Colors.pinkAccent),
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _Skeleton.box(width: 140, height: 16),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 40,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: 8,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, __) => const _Skeleton.box(
+                  width: 110,
+                  height: 40,
+                  radius: 8,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }

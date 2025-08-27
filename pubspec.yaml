@@ -46,6 +46,7 @@ dependencies:
   dio: ^5.9.0
   flutter_secure_storage: ^9.2.4
   flutter_dotenv: ^5.2.1
+  lottie: ^2.7.0
 
 dev_dependencies:
   flutter_test:

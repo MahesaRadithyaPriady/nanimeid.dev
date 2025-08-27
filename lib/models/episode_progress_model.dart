@@ -49,16 +49,16 @@ class EpisodeProgressModel {
 
   // Get progress percentage (assuming episode duration is 24 minutes = 1440 seconds)
   double get progressPercentage {
-    // Default episode duration is 24 minutes (1440 seconds)
-    const defaultDuration = 1440;
-    return (progressWatching / defaultDuration).clamp(0.0, 1.0);
+    // Prefer episode duration if provided, otherwise default 24 minutes (1440 seconds)
+    final episodeDuration = episode.durasiEpisode ?? 1440;
+    return (progressWatching / episodeDuration).clamp(0.0, 1.0);
   }
 
   // Get formatted progress time
   String get formattedProgressTime {
     final minutes = progressWatching ~/ 60;
     final seconds = progressWatching % 60;
-    return '${minutes}:${seconds.toString().padLeft(2, '0')}';
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
   // Get formatted last watched time
@@ -105,12 +105,16 @@ class EpisodeProgressInfoModel {
   final int nomorEpisode;
   final String judulEpisode;
   final String thumbnailEpisode;
+  final EpisodeProgressAnimeInfo? anime;
+  final int? durasiEpisode;
 
   EpisodeProgressInfoModel({
     required this.id,
     required this.nomorEpisode,
     required this.judulEpisode,
     required this.thumbnailEpisode,
+    this.anime,
+    this.durasiEpisode,
   });
 
   factory EpisodeProgressInfoModel.fromJson(Map<String, dynamic> json) {
@@ -120,6 +124,10 @@ class EpisodeProgressInfoModel {
         nomorEpisode: json['nomor_episode'] ?? 0,
         judulEpisode: json['judul_episode'] ?? '',
         thumbnailEpisode: json['thumbnail_episode'] ?? '',
+        anime: json['anime'] != null
+            ? EpisodeProgressAnimeInfo.fromJson(json['anime'] as Map<String, dynamic>)
+            : null,
+        durasiEpisode: json['durasi_episode'],
       );
     } catch (e) {
       print('Error parsing EpisodeProgressInfoModel: $e');
@@ -134,6 +142,46 @@ class EpisodeProgressInfoModel {
       'nomor_episode': nomorEpisode,
       'judul_episode': judulEpisode,
       'thumbnail_episode': thumbnailEpisode,
+      if (anime != null) 'anime': anime!.toMap(),
+      if (durasiEpisode != null) 'durasi_episode': durasiEpisode,
+    };
+  }
+}
+
+class EpisodeProgressAnimeInfo {
+  final int id;
+  final String namaAnime;
+  final String gambarAnime;
+  final String sinopsisAnime;
+
+  EpisodeProgressAnimeInfo({
+    required this.id,
+    required this.namaAnime,
+    required this.gambarAnime,
+    required this.sinopsisAnime,
+  });
+
+  factory EpisodeProgressAnimeInfo.fromJson(Map<String, dynamic> json) {
+    try {
+      return EpisodeProgressAnimeInfo(
+        id: json['id'] ?? 0,
+        namaAnime: json['nama_anime'] ?? '',
+        gambarAnime: json['gambar_anime'] ?? '',
+        sinopsisAnime: json['sinopsis_anime'] ?? '',
+      );
+    } catch (e) {
+      print('Error parsing EpisodeProgressAnimeInfo: $e');
+      print('JSON data: $json');
+      rethrow;
+    }
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'nama_anime': namaAnime,
+      'gambar_anime': gambarAnime,
+      'sinopsis_anime': sinopsisAnime,
     };
   }
 }

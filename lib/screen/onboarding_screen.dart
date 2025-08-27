@@ -12,9 +12,12 @@ class OnboardingScreen extends StatefulWidget {
   State<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends State<OnboardingScreen>
+    with SingleTickerProviderStateMixin {
   final PageController _controller = PageController();
   int currentPage = 0;
+  late final AnimationController _hintController;
+  late final Animation<Offset> _hintOffset;
 
   final List<Map<String, dynamic>> pages = [
     {
@@ -34,6 +37,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       "swipeUp": true,
     },
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _hintController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+
+    _hintOffset = Tween<Offset>(
+      begin: const Offset(0, 0.12),
+      end: const Offset(0, 0),
+    ).animate(CurvedAnimation(parent: _hintController, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _hintController.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
 
   Route _createLoginRoute() {
     return PageRouteBuilder(
@@ -100,6 +124,50 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
           ),
+
+          /// Hint "Scroll ke bawah" di bawah (sembunyikan di halaman terakhir)
+          if (currentPage < pages.length - 1)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 110, // tepat di atas wave
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  // tap hint untuk ke halaman berikutnya
+                  final next = (currentPage + 1).clamp(0, pages.length - 1);
+                  _controller.animateToPage(
+                    next,
+                    duration: const Duration(milliseconds: 450),
+                    curve: Curves.easeOutCubic,
+                  );
+                },
+                child: SlideTransition(
+                  position: _hintOffset,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: Colors.white70,
+                        size: 28,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Scroll ke bawah',
+                        style: GoogleFonts.poppins(
+                          textStyle: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
           /// Wave di bawah
           Positioned(
