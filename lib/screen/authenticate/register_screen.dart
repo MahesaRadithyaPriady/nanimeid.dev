@@ -21,17 +21,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
-  final TextEditingController userIdController = TextEditingController();
 
   bool agreeToPolicy = false;
   bool agreeToRecommendation = false;
   bool isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    userIdController.text = '';
-  }
 
   bool get isFormValid =>
       agreeToPolicy &&
@@ -39,8 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       emailController.text.isNotEmpty &&
       usernameController.text.isNotEmpty &&
       passwordController.text == confirmPasswordController.text &&
-      passwordController.text.length >= 6 &&
-      userIdController.text.isNotEmpty;
+      passwordController.text.length >= 6;
 
   Future<void> _handleRegister() async {
     setState(() => isLoading = true);
@@ -49,7 +41,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       username: usernameController.text.trim(),
       email: emailController.text.trim(),
       password: passwordController.text.trim(),
-      userid: int.tryParse(userIdController.text) ?? 0,
     );
 
     if (mounted) {
@@ -159,36 +150,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
 
                   const SizedBox(height: 20),
-                  _label('User ID (NanimeID - Angka)'),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white10,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'NanimeID -',
-                          style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: userIdController,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: _inputDecoration('Contoh: 0899'),
-                        ),
-                      ),
-                    ],
-                  ),
+                  // User ID field removed: registration no longer requires manual ID input
 
                   const SizedBox(height: 20),
                   Row(

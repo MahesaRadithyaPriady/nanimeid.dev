@@ -10,6 +10,8 @@ import '../../services/anime_service.dart';
 import '../../models/anime_model.dart';
 import 'anime_grid_screen.dart';
 import 'package:persistent_bottom_nav_bar/persistent_bottom_nav_bar.dart';
+import 'nobar_screen.dart';
+import 'leaderboard_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,6 +39,81 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadAnimeData();
+  }
+
+  void _showLeaderboardBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF121212),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        final mockLeaders = [
+          {'name': 'Kazuma', 'level': 28, 'xp': 4200},
+          {'name': 'Aqua', 'level': 25, 'xp': 3900},
+          {'name': 'Megumin', 'level': 24, 'xp': 3720},
+          {'name': 'Darkness', 'level': 23, 'xp': 3600},
+          {'name': 'Yunyun', 'level': 22, 'xp': 3450},
+        ];
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.emoji_events, color: Colors.amber),
+                    SizedBox(width: 8),
+                    Text(
+                      'Leaderboard Level (Mock)',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: mockLeaders.length,
+                    separatorBuilder: (_, __) => const Divider(color: Colors.white12),
+                    itemBuilder: (context, index) {
+                      final item = mockLeaders[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.white24,
+                          child: Text(
+                            '${index + 1}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                        ),
+                        title: Text(
+                          item['name'] as String,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        subtitle: Text(
+                          'Lv ${item['level']} • ${item['xp']} XP',
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        trailing: const Icon(Icons.chevron_right, color: Colors.white54),
+                        onTap: () {},
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _loadAnimeData() async {
@@ -125,9 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-              ),
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
               child: const Text('Batal'),
             ),
             ElevatedButton(
@@ -197,6 +272,102 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 16),
 
+                    // Nobar banner (temporarily disabled for maintenance)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: GestureDetector(
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Fitur Nobar sedang dalam perbaikan. Mohon tunggu pembaruan selanjutnya.',
+                              ),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF7E57C2), Color(0xFFE040FB)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.purple.withOpacity(0.25),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.groups_2,
+                                  color: Colors.white,
+                                  size: 30,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      'Nobar (Nonton Bareng)',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      'Bikin room dan nonton anime bareng temanmu. (Sedang dalam perbaikan)',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Text(
+                                  'Info',
+                                  style: TextStyle(
+                                    color: Color(0xFF7E57C2),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     // Search bar - Static, tidak perlu skeleton
                     const HomeSearchField(),
 
@@ -217,14 +388,112 @@ class _HomeScreenState extends State<HomeScreen> {
                             animeList: popularAnimeList,
                           ),
                           withNavBar: true,
-                          pageTransitionAnimation: PageTransitionAnimation.cupertino,
+                          pageTransitionAnimation:
+                              PageTransitionAnimation.cupertino,
                         );
                       },
                       animeList: popularAnimeList,
                       isLoading: isLoadingPopular,
                     ),
 
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 20),
+
+                    // Banner: Leaderboard Level (mock)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: GestureDetector(
+                        onTap: () {
+                          PersistentNavBarNavigator.pushNewScreen(
+                            context,
+                            screen: const LeaderboardScreen(),
+                            withNavBar: true,
+                            pageTransitionAnimation:
+                                PageTransitionAnimation.cupertino,
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFFFC107), Color(0xFFFF8F00)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.amber.withOpacity(0.25),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.emoji_events,
+                                  color: Colors.white,
+                                  size: 30,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: const [
+                                    Text(
+                                      'Leaderboard Level',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                    SizedBox(height: 6),
+                                    Text(
+                                      'Lihat peringkat level pengguna.',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: const Text(
+                                  'Lihat',
+                                  style: TextStyle(
+                                    color: Color(0xFFFF8F00),
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
 
                     // Latest Anime
                     HomeSectionAnime(
@@ -238,7 +507,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             animeList: latestAnimeList,
                           ),
                           withNavBar: true,
-                          pageTransitionAnimation: PageTransitionAnimation.cupertino,
+                          pageTransitionAnimation:
+                              PageTransitionAnimation.cupertino,
                         );
                       },
                       animeList: latestAnimeList,
@@ -259,7 +529,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             animeList: movieAnimeList,
                           ),
                           withNavBar: true,
-                          pageTransitionAnimation: PageTransitionAnimation.cupertino,
+                          pageTransitionAnimation:
+                              PageTransitionAnimation.cupertino,
                         );
                       },
                       animeList: movieAnimeList,
@@ -300,7 +571,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             animeList: recommendedAnimeList,
                           ),
                           withNavBar: true,
-                          pageTransitionAnimation: PageTransitionAnimation.cupertino,
+                          pageTransitionAnimation:
+                              PageTransitionAnimation.cupertino,
                         );
                       },
                       animeList: recommendedAnimeList,

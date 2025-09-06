@@ -47,6 +47,10 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   flutter_dotenv: ^5.2.1
   lottie: ^2.7.0
+  path_provider: ^2.1.4
+  socket_io_client: ^2.0.3
+  shared_preferences: ^2.3.2
+  image_picker: ^1.1.2
 
 dev_dependencies:
   flutter_test:
@@ -58,6 +62,12 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  image_path: "logo/logo_nanimeid.png"
+  android: true
+  ios: false
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

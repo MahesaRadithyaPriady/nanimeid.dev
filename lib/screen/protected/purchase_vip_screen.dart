@@ -105,7 +105,6 @@ class _PurchaseVipScreenState extends State<PurchaseVipScreen> {
 
   @override
   void dispose() {
-    _voucherCtrl.dispose();
     super.dispose();
   }
 
@@ -116,148 +115,62 @@ class _PurchaseVipScreenState extends State<PurchaseVipScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: Text(_isMaster ? 'Tier ${widget.tier} (Gift Admin)' : 'Beli ${widget.tier}', style: GoogleFonts.poppins(color: Colors.white)),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          'Beli VIP',
+          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF121212),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: _accent.withOpacity(0.6)),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF000000), Color(0xFF0F0F0F)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.hourglass_empty, color: Colors.white24, size: 56),
+              const SizedBox(height: 16),
+              Text(
+                'Coming soon',
+                style: GoogleFonts.poppins(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.workspace_premium, color: _accent),
-                      const SizedBox(width: 8),
-                      Text(widget.tier.toUpperCase(), style: GoogleFonts.poppins(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
-                      const Spacer(),
-                      if (_isMaster)
-                        Text('Gift Admin', style: GoogleFonts.poppins(color: Colors.white70, fontWeight: FontWeight.w600))
-                      else
-                        Text(_formatRupiah(_payable), style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                  if (_isMaster) ...[
-                    const SizedBox(height: 12),
-                    Text('Tier ini eksklusif dan hanya bisa diberikan oleh Admin (Gift). Hubungi Admin untuk mendapatkannya.',
-                        style: GoogleFonts.poppins(color: Colors.white70)),
-                  ] else ...[
-                    const SizedBox(height: 12),
-                    Text('Pilih durasi:', style: GoogleFonts.poppins(color: Colors.white70)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        for (final d in ['30 Hari', '90 Hari', '1 Tahun'])
-                          ChoiceChip(
-                            label: Text(d, style: GoogleFonts.poppins(color: Colors.white)),
-                            selectedColor: _accent.withOpacity(0.35),
-                            backgroundColor: const Color(0xFF1A1A1A),
-                            shape: StadiumBorder(side: BorderSide(color: _accent.withOpacity(0.7))),
-                            selected: _duration == d,
-                            onSelected: (_) => setState(() => _duration = d),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text('Voucher:', style: GoogleFonts.poppins(color: Colors.white70)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _voucherCtrl,
-                            style: GoogleFonts.poppins(color: Colors.white),
-                            decoration: InputDecoration(
-                              hintText: 'Masukkan kode voucher (contoh: VIP10)',
-                              hintStyle: GoogleFonts.poppins(color: Colors.white38, fontSize: 13),
-                              filled: true,
-                              fillColor: const Color(0xFF1A1A1A),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.white10),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.white10),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: _accent),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _accent,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          onPressed: _applyVoucher,
-                          child: Text('Pakai', style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600)),
-                        ),
-                      ],
-                    ),
-                    if (_discountPercent > 0) ...[
-                      const SizedBox(height: 8),
-                      Text('-$_discountPercent% diterapkan • Total: ${_formatRupiah(_payable)}', style: GoogleFonts.poppins(color: Colors.white54, fontSize: 12)),
-                    ],
-                    const SizedBox(height: 16),
-                    Text('Metode Pembayaran:', style: GoogleFonts.poppins(color: Colors.white70)),
-                    const SizedBox(height: 8),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: [
-                          for (final m in ['DANA', 'OVO', 'GoPay', 'ShopeePay', 'Transfer Bank', 'Kartu Kredit'])
-                            Padding(
-                              padding: const EdgeInsets.only(right: 8.0),
-                              child: ChoiceChip(
-                                label: Text(m, style: GoogleFonts.poppins(color: Colors.white)),
-                                selected: _paymentMethod == m,
-                                onSelected: (_) => setState(() => _paymentMethod = m),
-                                selectedColor: _accent.withOpacity(0.35),
-                                backgroundColor: const Color(0xFF1A1A1A),
-                                shape: StadiumBorder(side: BorderSide(color: _accent.withOpacity(0.7))),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
+              const SizedBox(height: 8),
+              Text(
+                'Hubungi Admin untuk beli VIP',
+                style: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: Colors.white70,
+                ),
               ),
-            ),
-            const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isMaster ? Colors.white10 : _accent,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: Colors.pinkAccent,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                onPressed: _processing || _isMaster ? null : _buy,
-                child: _processing
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : Text(
-                        _isMaster ? 'Hanya Gift Admin' : 'Bayar ${_formatRupiah(_payable)}',
-                        style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w600),
-                      ),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Silakan hubungi Admin untuk pembelian VIP')),
+                  );
+                },
+                icon: const Icon(Icons.support_agent),
+                label: Text('Hubungi Admin', style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

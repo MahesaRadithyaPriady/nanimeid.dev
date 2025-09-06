@@ -297,3 +297,172 @@ class EpisodeProgressResponseModel {
     }
   }
 }
+
+// ===================== SINGLE PROGRESS RESPONSE (no episode object) =====================
+
+class UserEpisodeProgressDataModel {
+  final int? id; // can be null when no progress yet
+  final int userId;
+  final int episodeId;
+  final int progressWatching;
+  final bool isCompleted;
+  final String? lastWatched; // can be null
+
+  UserEpisodeProgressDataModel({
+    required this.id,
+    required this.userId,
+    required this.episodeId,
+    required this.progressWatching,
+    required this.isCompleted,
+    required this.lastWatched,
+  });
+
+  factory UserEpisodeProgressDataModel.fromJson(Map<String, dynamic> json) {
+    return UserEpisodeProgressDataModel(
+      id: json['id'] == null ? null : (json['id'] as int? ?? int.tryParse(json['id'].toString()) ?? 0),
+      userId: json['user_id'] ?? 0,
+      episodeId: json['episode_id'] ?? 0,
+      progressWatching: json['progress_watching'] ?? 0,
+      isCompleted: json['is_completed'] ?? false,
+      lastWatched: json['last_watched']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'user_id': userId,
+        'episode_id': episodeId,
+        'progress_watching': progressWatching,
+        'is_completed': isCompleted,
+        'last_watched': lastWatched,
+      };
+}
+
+class UserEpisodeProgressSingleResponseModel {
+  final int status;
+  final String message;
+  final UserEpisodeProgressDataModel data;
+
+  UserEpisodeProgressSingleResponseModel({
+    required this.status,
+    required this.message,
+    required this.data,
+  });
+
+  factory UserEpisodeProgressSingleResponseModel.fromJson(Map<String, dynamic> json) {
+    return UserEpisodeProgressSingleResponseModel(
+      status: json['status'] ?? 0,
+      message: json['message'] ?? '',
+      data: UserEpisodeProgressDataModel.fromJson(json['data'] ?? {}),
+    );
+  }
+
+  bool get isSuccess => status == 200;
+}
+
+// ===================== TOTAL PROGRESS PER ANIME =====================
+
+class UserAnimeTotalProgressEpisodeItemModel {
+  final int episodeId;
+  final int episodeNumber;
+  final int progressWatching;
+  final bool isCompleted;
+  final int episodeDuration;
+  final String? lastWatched;
+
+  UserAnimeTotalProgressEpisodeItemModel({
+    required this.episodeId,
+    required this.episodeNumber,
+    required this.progressWatching,
+    required this.isCompleted,
+    required this.episodeDuration,
+    required this.lastWatched,
+  });
+
+  factory UserAnimeTotalProgressEpisodeItemModel.fromJson(Map<String, dynamic> json) {
+    return UserAnimeTotalProgressEpisodeItemModel(
+      episodeId: json['episode_id'] ?? 0,
+      episodeNumber: json['episode_number'] ?? 0,
+      progressWatching: json['progress_watching'] ?? 0,
+      isCompleted: json['is_completed'] ?? false,
+      episodeDuration: json['episode_duration'] ?? 0,
+      lastWatched: json['last_watched']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'episode_id': episodeId,
+        'episode_number': episodeNumber,
+        'progress_watching': progressWatching,
+        'is_completed': isCompleted,
+        'episode_duration': episodeDuration,
+        'last_watched': lastWatched,
+      };
+}
+
+class UserAnimeTotalProgressModel {
+  final int animeId;
+  final int totalEpisodes;
+  final int completedEpisodes;
+  final int totalEpisodeDuration;
+  final int totalWatchedDuration;
+  final int progressPercentage;
+  final List<UserAnimeTotalProgressEpisodeItemModel> episodesProgress;
+
+  UserAnimeTotalProgressModel({
+    required this.animeId,
+    required this.totalEpisodes,
+    required this.completedEpisodes,
+    required this.totalEpisodeDuration,
+    required this.totalWatchedDuration,
+    required this.progressPercentage,
+    required this.episodesProgress,
+  });
+
+  factory UserAnimeTotalProgressModel.fromJson(Map<String, dynamic> json) {
+    return UserAnimeTotalProgressModel(
+      animeId: json['anime_id'] ?? 0,
+      totalEpisodes: json['total_episodes'] ?? 0,
+      completedEpisodes: json['completed_episodes'] ?? 0,
+      totalEpisodeDuration: json['total_episode_duration'] ?? 0,
+      totalWatchedDuration: json['total_watched_duration'] ?? 0,
+      progressPercentage: json['progress_percentage'] ?? 0,
+      episodesProgress: (json['episodes_progress'] as List?)
+              ?.map((e) => UserAnimeTotalProgressEpisodeItemModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          <UserAnimeTotalProgressEpisodeItemModel>[],
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+        'anime_id': animeId,
+        'total_episodes': totalEpisodes,
+        'completed_episodes': completedEpisodes,
+        'total_episode_duration': totalEpisodeDuration,
+        'total_watched_duration': totalWatchedDuration,
+        'progress_percentage': progressPercentage,
+        'episodes_progress': episodesProgress.map((e) => e.toMap()).toList(),
+      };
+}
+
+class UserAnimeTotalProgressResponseModel {
+  final int status;
+  final String message;
+  final UserAnimeTotalProgressModel data;
+
+  UserAnimeTotalProgressResponseModel({
+    required this.status,
+    required this.message,
+    required this.data,
+  });
+
+  factory UserAnimeTotalProgressResponseModel.fromJson(Map<String, dynamic> json) {
+    return UserAnimeTotalProgressResponseModel(
+      status: json['status'] ?? 0,
+      message: json['message'] ?? '',
+      data: UserAnimeTotalProgressModel.fromJson(json['data'] ?? {}),
+    );
+  }
+
+  bool get isSuccess => status == 200;
+}

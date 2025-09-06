@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/profile_model.dart';
 import '../../services/profile_service.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import '../../services/vip_service.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
   const AccountSettingsScreen({super.key});
@@ -20,6 +23,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   bool _loading = true;
   ProfileModel? _profile;
+  bool _isVip = false;
+  XFile? _pickedAvatar;
 
   @override
   void initState() {
@@ -31,6 +36,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     try {
       final res = await ProfileService.getMyProfile();
       final p = res.profile;
+      // Fetch VIP status
+      final vip = await VipService.getMyVip();
       setState(() {
         _profile = p;
         _nameCtrl.text = p?.fullName ?? '';
@@ -38,6 +45,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         _avatarCtrl.text = p?.avatarUrl ?? '';
         _birthdate = p?.birthdate;
         _gender = p?.gender;
+        _isVip = vip.isActive;
         _loading = false;
       });
     } catch (_) {
@@ -66,10 +74,50 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
+      String? avatarUrlToSend;
+
+      final rawAvatar = _avatarCtrl.text.trim();
+
+      if (_isVip) {
+        // If VIP and picked a local image, upload it first
+        if (_pickedAvatar != null) {
+          final upload = await ProfileService.uploadMyAvatar(
+            filePath: _pickedAvatar!.path,
+          );
+          if (upload.profile?.avatarUrl != null) {
+            avatarUrlToSend = upload.profile!.avatarUrl;
+          }
+        } else if (rawAvatar.isNotEmpty) {
+          // If VIP entered a URL manually, only accept http(s)
+          if (rawAvatar.startsWith('http://') || rawAvatar.startsWith('https://')) {
+            avatarUrlToSend = rawAvatar;
+          } else if (rawAvatar.startsWith('/')) {
+            // Looks like a local path but no _pickedAvatar; suggest using picker
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('VIP: Gunakan tombol galeri untuk unggah avatar, atau masukkan URL http(s).')),
+            );
+            return;
+          }
+        }
+      } else {
+        // Non-VIP must provide http(s) URL if provided at all
+        if (rawAvatar.isNotEmpty) {
+          if (!(rawAvatar.startsWith('http://') || rawAvatar.startsWith('https://'))) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Non‑VIP hanya dapat mengisi Avatar URL berupa http(s).')),
+            );
+            return;
+          }
+          avatarUrlToSend = rawAvatar;
+        }
+      }
+
       final res = await ProfileService.updateMyProfile(
         fullName: _nameCtrl.text.trim(),
         bio: _bioCtrl.text.trim(),
-        avatarUrl: _avatarCtrl.text.trim().isEmpty ? null : _avatarCtrl.text.trim(),
+        avatarUrl: avatarUrlToSend,
         birthdate: _birthdate,
         gender: _gender,
       );
@@ -78,6 +126,22 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profil berhasil diperbarui')),
         );
+        // Fetch profil terbaru agar state lokal dan layar sebelumnya konsisten
+        try {
+          final latest = await ProfileService.getMyProfile();
+          if (mounted) {
+            setState(() {
+              _profile = latest.profile;
+              _nameCtrl.text = latest.profile?.fullName ?? _nameCtrl.text;
+              _bioCtrl.text = latest.profile?.bio ?? _bioCtrl.text;
+              _avatarCtrl.text = latest.profile?.avatarUrl ?? _avatarCtrl.text;
+              _birthdate = latest.profile?.birthdate ?? _birthdate;
+              _gender = latest.profile?.gender ?? _gender;
+            });
+          }
+        } catch (_) {
+          // ignore fetch error here; UI will still refresh on previous screen
+        }
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -91,6 +155,28 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       );
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _pickAvatarFromGallery() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() {
+          _pickedAvatar = image;
+          // Temporarily fill the text field with local file path as a placeholder
+          _avatarCtrl.text = image.path;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gagal memilih gambar dari galeri')),
+      );
     }
   }
 
@@ -142,8 +228,30 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                       controller: _avatarCtrl,
                       cursorColor: Colors.pinkAccent,
                       style: const TextStyle(color: Colors.white),
-                      decoration: _inputDecoration('Avatar URL'),
+                      decoration: _inputDecoration('Avatar URL').copyWith(
+                        suffixIcon: _isVip
+                            ? IconButton(
+                                tooltip: 'Pilih dari galeri (VIP)',
+                                icon: const Icon(Icons.photo, color: Colors.pinkAccent),
+                                onPressed: _pickAvatarFromGallery,
+                              )
+                            : null,
+                      ),
                     ),
+                    if (_pickedAvatar != null) ...[
+                      const SizedBox(height: 10),
+                      Text('Pratinjau Avatar (lokal):', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(
+                          File(_pickedAvatar!.path),
+                          height: 120,
+                          width: 120,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     Row(
                       children: [

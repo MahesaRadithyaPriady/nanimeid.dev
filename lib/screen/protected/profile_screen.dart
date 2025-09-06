@@ -9,6 +9,13 @@ import '../../models/vip_model.dart';
 import '../../widgets/exit_confirmation.dart';
 import './account_settings_screen.dart';
 import './membership_info_screen.dart';
+import './downloads_screen.dart';
+import 'package:nanimeid/screen/authenticate/login_screen.dart';
+import '../../services/auth_service.dart';
+import './privacy_security_screen.dart';
+import './nanistore_screen.dart';
+import '../../services/xp_service.dart';
+import '../../models/xp_model.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -21,6 +28,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   late Future<ProfileResponseModel> _profileFuture;
   late Future<VipResponseModel> _vipFuture;
+  late Future<XpResponseModel> _xpFuture;
   late final AnimationController _diamondCtrl;
 
   Color _vipAccent(String level) {
@@ -156,6 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   void _loadData() {
     _profileFuture = ProfileService.getMyProfile();
     _vipFuture = VipService.getMyVip();
+    _xpFuture = XpService.getMyXp();
   }
 
   Future<void> _onRefresh() async {
@@ -163,7 +172,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       _loadData();
     });
     // optionally wait for one of them to complete
-    await Future.any([_profileFuture, _vipFuture]);
+    await Future.any([_profileFuture, _vipFuture, _xpFuture]);
   }
 
   @override
@@ -309,26 +318,186 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 children: [
                                   Row(
                                     children: [
-                                      CircleAvatar(
-                                        radius: 36,
-                                        backgroundColor: Colors.pinkAccent,
-                                        backgroundImage:
-                                            (profile.avatarUrl != null &&
-                                                profile.avatarUrl!.isNotEmpty)
-                                            ? NetworkImage(profile.avatarUrl!)
-                                            : null,
-                                        child:
-                                            (profile.avatarUrl == null ||
-                                                profile.avatarUrl!.isEmpty)
-                                            ? Text(
-                                                initials,
-                                                style: GoogleFonts.poppins(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 24,
+                                      Builder(
+                                        builder: (context) {
+                                          final level =
+                                              (vipSnap.data?.vip?.vipLevel ??
+                                                      '')
+                                                  .toLowerCase();
+                                          final avatarCore = CircleAvatar(
+                                            radius: 36,
+                                            backgroundColor: Colors.pinkAccent,
+                                            backgroundImage:
+                                                (profile.avatarUrl != null &&
+                                                    profile
+                                                        .avatarUrl!
+                                                        .isNotEmpty)
+                                                ? NetworkImage(
+                                                    profile.avatarUrl!,
+                                                  )
+                                                : null,
+                                            child:
+                                                (profile.avatarUrl == null ||
+                                                    profile.avatarUrl!.isEmpty)
+                                                ? Text(
+                                                    initials,
+                                                    style: GoogleFonts.poppins(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 24,
+                                                    ),
+                                                  )
+                                                : null,
+                                          );
+                                          Widget avatarDecorated;
+                                          if (level == 'diamond') {
+                                            avatarDecorated = AnimatedBuilder(
+                                              animation: _diamondCtrl,
+                                              builder: (context, _) {
+                                                final angle =
+                                                    _diamondCtrl.value *
+                                                    2 *
+                                                    math.pi;
+                                                return Container(
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    gradient: SweepGradient(
+                                                      colors: const [
+                                                        Color(0xFF9C27B0),
+                                                        Color(0xFFE040FB),
+                                                        Color(0xFF7E57C2),
+                                                        Color(0xFF9C27B0),
+                                                      ],
+                                                      transform:
+                                                          GradientRotation(
+                                                            angle,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                  padding: const EdgeInsets.all(
+                                                    2,
+                                                  ),
+                                                  child: ClipOval(
+                                                    child: avatarCore,
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          } else if (level == 'master') {
+                                            avatarDecorated = AnimatedBuilder(
+                                              animation: _diamondCtrl,
+                                              builder: (context, _) {
+                                                final angle =
+                                                    _diamondCtrl.value *
+                                                    2 *
+                                                    math.pi;
+                                                final glow =
+                                                    10 +
+                                                    6 *
+                                                        (0.5 +
+                                                            0.5 *
+                                                                math.sin(
+                                                                  angle,
+                                                                ));
+                                                return Container(
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    gradient: SweepGradient(
+                                                      colors: const [
+                                                        Color(0xFFE53935),
+                                                        Color(0xFFFF7043),
+                                                        Color(0xFFD81B60),
+                                                        Color(0xFFE53935),
+                                                      ],
+                                                      transform:
+                                                          GradientRotation(
+                                                            angle,
+                                                          ),
+                                                    ),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.redAccent
+                                                            .withOpacity(0.35),
+                                                        blurRadius: glow,
+                                                        spreadRadius: 1,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  padding: const EdgeInsets.all(
+                                                    2,
+                                                  ),
+                                                  child: ClipOval(
+                                                    child: avatarCore,
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          } else {
+                                            final color = _vipAccent(level);
+                                            avatarDecorated = Container(
+                                              padding: const EdgeInsets.all(2),
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                border: Border.all(
+                                                  color: color.withOpacity(
+                                                    level.isEmpty ? 0.2 : 0.8,
+                                                  ),
+                                                  width: 2,
                                                 ),
-                                              )
-                                            : null,
+                                              ),
+                                              child: avatarCore,
+                                            );
+                                          }
+                                          // Avatar with XP badge (from API)
+                                          return Stack(
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              avatarDecorated,
+                                              Positioned(
+                                                right: -2,
+                                                bottom: -2,
+                                                child: FutureBuilder<XpResponseModel>(
+                                                  future: _xpFuture,
+                                                  builder: (context, xpSnap) {
+                                                    // Loading: show skeleton pill
+                                                    if (xpSnap.connectionState == ConnectionState.waiting) {
+                                                      return const _SkeletonBox(
+                                                        width: 36,
+                                                        height: 16,
+                                                        borderRadius: 999,
+                                                      );
+                                                    }
+                                                    // Error or no data: hide badge to avoid wrong info
+                                                    if (xpSnap.hasError || xpSnap.data?.data == null) {
+                                                      return const SizedBox.shrink();
+                                                    }
+                                                    final int lvl = xpSnap.data!.data!.level.levelNumber;
+                                                    return Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.black,
+                                                        borderRadius: BorderRadius.circular(999),
+                                                        border: Border.all(
+                                                          color: _vipAccent(level),
+                                                          width: 1.2,
+                                                        ),
+                                                      ),
+                                                      child: Text(
+                                                        'Lv $lvl',
+                                                        style: GoogleFonts.poppins(
+                                                          color: Colors.white,
+                                                          fontSize: 10,
+                                                          fontWeight: FontWeight.w700,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
                                       ),
                                       const SizedBox(width: 16),
                                       Expanded(
@@ -392,6 +561,148 @@ class _ProfileScreenState extends State<ProfileScreen>
                                           ),
                                         ),
                                       ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Level section (real from XP API)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: FutureBuilder<XpResponseModel>(
+                      future: _xpFuture,
+                      builder: (context, xpSnap) {
+                        return FutureBuilder<VipResponseModel>(
+                          future: _vipFuture,
+                          builder: (context, vipSnap) {
+                            final accent = _vipAccent(
+                              vipSnap.data?.vip?.vipLevel ?? '',
+                            );
+
+                            if (xpSnap.connectionState ==
+                                ConnectionState.waiting) {
+                              return const _XpSkeleton();
+                            }
+                            if (xpSnap.hasError || xpSnap.data?.data == null) {
+                              return Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF121212),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.white12),
+                                ),
+                                child: Text(
+                                  'Gagal memuat XP',
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              );
+                            }
+
+                            final XpDataModel x = xpSnap.data!.data!;
+                            final levelNumber = x.level.levelNumber;
+                            final levelTitle = x.level.title;
+                            final percent =
+                                (x.progress.percent.clamp(0, 100)) / 100.0;
+                            final nextReq =
+                                x.progress.nextLevelXpRequired ??
+                                x.progress.currentLevelXpRequired;
+
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF121212),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: accent.withOpacity(0.35),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.25),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.bar_chart, color: accent),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '$levelTitle',
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white10,
+                                          borderRadius: BorderRadius.circular(
+                                            999,
+                                          ),
+                                          border: Border.all(
+                                            color: accent.withOpacity(0.7),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Lv $levelNumber',
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: LinearProgressIndicator(
+                                      value: percent,
+                                      minHeight: 10,
+                                      backgroundColor: Colors.white12,
+                                      color: accent,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        '${x.currentXp} / $nextReq XP',
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${(percent * 100).toStringAsFixed(0)}%',
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.white70,
+                                          fontSize: 12,
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ],
@@ -666,6 +977,30 @@ class _ProfileScreenState extends State<ProfileScreen>
                       children: [
                         ListTile(
                           leading: const Icon(
+                            Icons.storefront,
+                            color: Colors.white,
+                          ),
+                          title: Text(
+                            'NaniStore',
+                            style: GoogleFonts.poppins(color: Colors.white),
+                          ),
+                          subtitle: Text(
+                            'Beli dengan Koin · VIP · Title/Badge',
+                            style: GoogleFonts.poppins(
+                              color: Colors.white60,
+                              fontSize: 12,
+                            ),
+                          ),
+                          onTap: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const NaniStoreScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(
                             Icons.workspace_premium,
                             color: Colors.white,
                           ),
@@ -677,6 +1012,23 @@ class _ProfileScreenState extends State<ProfileScreen>
                             await Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => const MembershipInfoScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        ListTile(
+                          leading: const Icon(
+                            Icons.download,
+                            color: Colors.white,
+                          ),
+                          title: Text(
+                            'Unduhan',
+                            style: GoogleFonts.poppins(color: Colors.white),
+                          ),
+                          onTap: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const DownloadsScreen(),
                               ),
                             );
                           },
@@ -711,7 +1063,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                             'Privasi & Keamanan',
                             style: GoogleFonts.poppins(color: Colors.white),
                           ),
-                          onTap: () {},
+                          onTap: () async {
+                            await Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const PrivacySecurityScreen(),
+                              ),
+                            );
+                          },
                         ),
                         ListTile(
                           leading: const Icon(
@@ -722,7 +1080,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                             'Keluar',
                             style: GoogleFonts.poppins(color: Colors.redAccent),
                           ),
-                          onTap: () {},
+                          onTap: () async {
+                            await AuthService.logout();
+                            if (!mounted) return;
+                            Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (_) => const LoginScreen(),
+                              ),
+                              (route) => false,
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -732,6 +1099,47 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _XpSkeleton extends StatelessWidget {
+  const _XpSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF121212),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              _SkeletonBox(width: 20, height: 20, borderRadius: 6),
+              SizedBox(width: 8),
+              _SkeletonBox(width: 120, height: 16),
+              Spacer(),
+              _SkeletonBox(width: 50, height: 24, borderRadius: 999),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const _SkeletonBox(width: double.infinity, height: 8, borderRadius: 6),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              _SkeletonBox(width: 140, height: 12, borderRadius: 4),
+              _SkeletonBox(width: 80, height: 12, borderRadius: 4),
+            ],
+          ),
+        ],
       ),
     );
   }

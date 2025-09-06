@@ -47,4 +47,76 @@ class ProfileService {
       profile: null,
     );
   }
+
+  /// PUT /profile/me/avatar (VIP only)
+  /// Multipart upload with field name 'avatar'. Returns updated profile.
+  static Future<ProfileResponseModel> uploadMyAvatar({
+    required String filePath,
+  }) async {
+    final fileName = filePath.split('/').isNotEmpty
+        ? filePath.split('/').last
+        : filePath;
+    final form = FormData.fromMap({
+      'avatar': await MultipartFile.fromFile(filePath, filename: fileName),
+    });
+
+    final Response res = await ApiService.dio.put(
+      '/profile/me/avatar',
+      data: form,
+      options: Options(contentType: 'multipart/form-data'),
+    );
+    final data = res.data;
+    if (data is Map<String, dynamic>) {
+      return ProfileResponseModel.fromJson(data);
+    }
+    return ProfileResponseModel(
+      message: 'Invalid response',
+      status: res.statusCode ?? 0,
+      profile: null,
+    );
+  }
+
+  /// GET /profile/:userId (Public)
+  /// Fetch a user's public profile aggregate by userId.
+  static Future<PublicProfileResponseModel> getPublicProfileById(int userId) async {
+    final Response res = await ApiService.dio.get('/profile/$userId');
+    final data = res.data;
+    if (data is Map<String, dynamic>) {
+      return PublicProfileResponseModel.fromJson(data);
+    }
+    return PublicProfileResponseModel(
+      message: 'Invalid response',
+      status: res.statusCode ?? 0,
+      profile: null,
+    );
+  }
+
+  /// GET /profile/search?q=keyword&page=&limit=
+  /// Returns a PublicProfileSearchResponseModel
+  static Future<PublicProfileSearchResponseModel> searchUsersPublic({
+    required String query,
+    int page = 1,
+    int limit = 20,
+  }) async {
+    final Response res = await ApiService.dio.get(
+      '/profile/search',
+      queryParameters: {
+        'q': query,
+        'page': page,
+        'limit': limit,
+      },
+    );
+    final data = res.data;
+    if (data is Map<String, dynamic>) {
+      return PublicProfileSearchResponseModel.fromJson(data);
+    }
+    return PublicProfileSearchResponseModel(
+      message: 'Invalid response',
+      status: res.statusCode ?? 0,
+      items: const [],
+      page: page,
+      limit: limit,
+      total: 0,
+    );
+  }
 }

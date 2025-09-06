@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../services/anime_service.dart';
@@ -210,7 +211,7 @@ class _WatchEpisodeListState extends State<WatchEpisodeList> {
               color: Colors.pinkAccent,
               size: 20,
             ),
-            tooltip: _isAscending ? 'Urutkan Terbaru' : 'Urutkan Terlama',
+            tooltip: kReleaseMode ? null : (_isAscending ? 'Urutkan Terbaru' : 'Urutkan Terlama'),
           ),
         ],
       ),

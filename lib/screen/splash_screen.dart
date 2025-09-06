@@ -10,6 +10,8 @@ import '../services/api_service.dart';
 import '../services/profile_service.dart';
 import '../utils/secure_storage.dart';
 import 'protected/navigation/main_navigation.dart';
+import '../services/vip_service.dart';
+import 'protected/downloads_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -135,6 +137,14 @@ class _SplashScreenState extends State<SplashScreen> {
       return;
     }
 
+    // Configure base URL depending on VIP status. If this call fails, we keep default (non-VIP)
+    try {
+      final vipRes = await VipService.getMyVip();
+      ApiService.setVip(vipRes.isActive);
+    } catch (_) {
+      // ignore failure, fallback will remain non-VIP base
+    }
+
     try {
       // Try to fetch profile using saved token
       final profileRes = await ProfileService.getMyProfile();
@@ -154,8 +164,23 @@ class _SplashScreenState extends State<SplashScreen> {
       Navigator.of(context).pushReplacement(_createRouteToHome());
       return;
     } catch (e) {
-      // Jika API tidak dapat diakses (timeout/connection error), tampilkan dialog retry/keluar
-      await _showConnectionErrorDialog();
+      // Mode offline: tidak bisa connect -> arahkan langsung ke layar Unduhan
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 600),
+          pageBuilder: (context, animation, secondaryAnimation) => const DownloadsScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(0.0, 1.0);
+            const end = Offset.zero;
+            const curve = Curves.easeOutCubic;
+            var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            var offsetAnimation = animation.drive(tween);
+            return SlideTransition(position: offsetAnimation, child: child);
+          },
+        ),
+      );
       return;
     }
 
@@ -212,7 +237,7 @@ class _SplashScreenState extends State<SplashScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'v1.0.0',
+              'v1.0.0 Beta 1',
               style: GoogleFonts.poppins(
                 textStyle: const TextStyle(
                   color: Colors.white54,
